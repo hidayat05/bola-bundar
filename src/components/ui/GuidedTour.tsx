@@ -241,61 +241,101 @@ export const GuidedTour: React.FC<GuidedTourProps> = ({ isOpen, onClose }) => {
   let cardStyle: React.CSSProperties = {};
   const margin = 16;
   const cardWidth = 440;
+  const cardEstimatedHeight = 440;
 
   if (targetRect && step.placement !== 'center') {
     const isMobile = window.innerWidth < 768;
+    const viewportHeight = window.innerHeight;
+    const viewportWidth = window.innerWidth;
 
     if (isMobile) {
       // On mobile, dock nicely at bottom center
       cardStyle = {
-        bottom: '20px',
+        bottom: '16px',
         left: '50%',
         transform: 'translateX(-50%)',
         width: 'calc(100vw - 32px)',
         maxWidth: '440px',
+        maxHeight: 'calc(100vh - 32px)',
       };
-    } else if (step.placement === 'bottom') {
-      const left = Math.max(
-        margin,
-        Math.min(
-          window.innerWidth - cardWidth - margin,
-          targetRect.left + targetRect.width / 2 - cardWidth / 2
-        )
-      );
-      cardStyle = {
-        top: `${Math.min(window.innerHeight - 360, targetRect.bottom + 16)}px`,
-        left: `${left}px`,
-        width: `${cardWidth}px`,
-      };
-    } else if (step.placement === 'top') {
-      const left = Math.max(
-        margin,
-        Math.min(
-          window.innerWidth - cardWidth - margin,
-          targetRect.left + targetRect.width / 2 - cardWidth / 2
-        )
-      );
-      cardStyle = {
-        bottom: `${Math.max(margin, window.innerHeight - targetRect.top + 16)}px`,
-        left: `${left}px`,
-        width: `${cardWidth}px`,
-      };
-    } else if (step.placement === 'right') {
-      const left = Math.min(window.innerWidth - cardWidth - margin, targetRect.right + 18);
-      const top = Math.max(margin, Math.min(window.innerHeight - 380, targetRect.top));
-      cardStyle = {
-        top: `${top}px`,
-        left: `${left}px`,
-        width: `${cardWidth}px`,
-      };
-    } else if (step.placement === 'left') {
-      const left = Math.max(margin, targetRect.left - cardWidth - 18);
-      const top = Math.max(margin, Math.min(window.innerHeight - 380, targetRect.top));
-      cardStyle = {
-        top: `${top}px`,
-        left: `${left}px`,
-        width: `${cardWidth}px`,
-      };
+    } else {
+      const effectiveWidth = Math.min(cardWidth, viewportWidth - margin * 2);
+
+      if (step.placement === 'bottom') {
+        const left = Math.max(
+          margin,
+          Math.min(
+            viewportWidth - effectiveWidth - margin,
+            targetRect.left + targetRect.width / 2 - effectiveWidth / 2
+          )
+        );
+
+        // Safe spacing: ensure card never bleeds off bottom
+        const desiredTop = targetRect.bottom + 14;
+        const maxTop = Math.max(margin, viewportHeight - cardEstimatedHeight - margin);
+        // If bottom clearance is too tight and there's plenty of space above, flip to top
+        const spaceBelow = viewportHeight - targetRect.bottom - margin;
+        const spaceAbove = targetRect.top - margin;
+
+        if (spaceBelow < 280 && spaceAbove > spaceBelow) {
+          const bottom = Math.max(margin, viewportHeight - targetRect.top + 14);
+          cardStyle = {
+            bottom: `${bottom}px`,
+            left: `${left}px`,
+            width: `${effectiveWidth}px`,
+            maxHeight: `calc(100vh - ${bottom + margin}px)`,
+          };
+        } else {
+          const top = Math.max(margin, Math.min(maxTop, desiredTop));
+          cardStyle = {
+            top: `${top}px`,
+            left: `${left}px`,
+            width: `${effectiveWidth}px`,
+            maxHeight: `calc(100vh - ${top + margin}px)`,
+          };
+        }
+      } else if (step.placement === 'top') {
+        const left = Math.max(
+          margin,
+          Math.min(
+            viewportWidth - effectiveWidth - margin,
+            targetRect.left + targetRect.width / 2 - effectiveWidth / 2
+          )
+        );
+        const desiredBottom = viewportHeight - targetRect.top + 14;
+        const maxBottom = Math.max(margin, viewportHeight - cardEstimatedHeight - margin);
+        const bottom = Math.max(margin, Math.min(maxBottom, desiredBottom));
+        cardStyle = {
+          bottom: `${bottom}px`,
+          left: `${left}px`,
+          width: `${effectiveWidth}px`,
+          maxHeight: `calc(100vh - ${bottom + margin}px)`,
+        };
+      } else if (step.placement === 'right') {
+        const left = Math.min(viewportWidth - effectiveWidth - margin, targetRect.right + 16);
+        const top = Math.max(
+          margin,
+          Math.min(viewportHeight - cardEstimatedHeight - margin, targetRect.top)
+        );
+        cardStyle = {
+          top: `${top}px`,
+          left: `${left}px`,
+          width: `${effectiveWidth}px`,
+          maxHeight: `calc(100vh - ${top + margin}px)`,
+        };
+      } else if (step.placement === 'left') {
+        const left = Math.max(margin, targetRect.left - effectiveWidth - 16);
+        const top = Math.max(
+          margin,
+          Math.min(viewportHeight - cardEstimatedHeight - margin, targetRect.top)
+        );
+        cardStyle = {
+          top: `${top}px`,
+          left: `${left}px`,
+          width: `${effectiveWidth}px`,
+          maxHeight: `calc(100vh - ${top + margin}px)`,
+        };
+      }
     }
   }
 
@@ -351,13 +391,7 @@ export const GuidedTour: React.FC<GuidedTourProps> = ({ isOpen, onClose }) => {
             width: targetRect.width + 12,
             height: targetRect.height + 12,
           }}
-        >
-          {/* Target Button Identifier Tag */}
-          <div className="absolute -top-7 left-0 bg-emerald-500 text-slate-950 text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded shadow-lg flex items-center gap-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-slate-950 animate-ping" />
-            <span>Target: {step.buttonName}</span>
-          </div>
-        </div>
+        />
       )}
 
       {/* 3. Floating or Centered Tour Card */}
@@ -371,10 +405,10 @@ export const GuidedTour: React.FC<GuidedTourProps> = ({ isOpen, onClose }) => {
       >
         <div
           ref={cardRef}
-          className="pointer-events-auto relative w-full max-w-lg bg-slate-900 border border-slate-700/90 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200"
+          className="pointer-events-auto relative w-full max-w-lg bg-slate-900 border border-slate-700/90 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col max-h-[calc(100vh-32px)] animate-in fade-in zoom-in-95 duration-200"
         >
           {/* Top Header with Gradient Accent */}
-          <div className={`p-4 sm:p-5 pb-3.5 bg-gradient-to-r ${step.accentColor} text-white relative`}>
+          <div className={`shrink-0 p-4 sm:p-5 pb-3.5 bg-gradient-to-r ${step.accentColor} text-white relative`}>
             {/* Close / Skip button */}
             <button
               onClick={handleSkip}
@@ -405,7 +439,7 @@ export const GuidedTour: React.FC<GuidedTourProps> = ({ isOpen, onClose }) => {
           </div>
 
           {/* Structured Content Body: Fungsi & Kegunaan */}
-          <div className="p-4 sm:p-5 space-y-3 bg-slate-900/95">
+          <div className="p-4 sm:p-5 space-y-3 bg-slate-900/95 overflow-y-auto min-h-0 flex-1">
             {/* Target Button Name Banner */}
             <div className="bg-slate-950/80 border border-slate-800 rounded-lg px-2.5 py-1.5 flex items-center gap-2">
               <Crosshair className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
@@ -478,7 +512,7 @@ export const GuidedTour: React.FC<GuidedTourProps> = ({ isOpen, onClose }) => {
           </div>
 
           {/* Footer Navigation Actions */}
-          <div className="p-3.5 px-4 sm:px-5 bg-slate-950 border-t border-slate-800 flex items-center justify-between">
+          <div className="shrink-0 p-3.5 px-4 sm:px-5 bg-slate-950 border-t border-slate-800 flex items-center justify-between">
             <button
               onClick={handleSkip}
               className="text-xs font-medium text-slate-400 hover:text-slate-200 px-2.5 py-1.5 rounded-lg hover:bg-slate-850 transition-colors"
