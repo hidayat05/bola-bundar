@@ -33,14 +33,16 @@ export interface TeamConfig {
 }
 
 export type DrawingType = 'pass' | 'run' | 'dribble' | 'zone';
+export type ActiveTool = 'select' | 'pass' | 'run' | 'dribble' | 'zone' | 'eraser';
 
 export interface DrawingElement {
   id: string;
   type: DrawingType;
-  points: number[]; // [x1, y1, x2, y2, ...]
+  points: number[]; // [x1, y1, x2, y2, ...] in normalized 0-100 coordinates
   color: string;
   dashed?: boolean;
   opacity?: number;
+  width?: number;
 }
 
 export interface TacticalKeyframe {
@@ -75,4 +77,18 @@ export interface FormationPreset {
   pitchType: PitchType;
   playerCount: number; // e.g. 5, 7, 8, 11
   positions: { x: number; y: number; role: string; number: number }[];
+}
+
+export interface TacticsExportData {
+  version: string;
+  exportedAt: string;
+  appName: string;
+  pitchType: PitchType;
+  pitchView: PitchView;
+  pitchSurface: PitchSurface;
+  showGrid: boolean;
+  showZones: boolean;
+  homeTeam: TeamConfig;
+  awayTeam: TeamConfig;
+  frames: TacticalKeyframe[];
 }

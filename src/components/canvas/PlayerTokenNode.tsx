@@ -3,6 +3,7 @@ import { Group, Circle, Text, Line, Arrow, Rect } from 'react-konva';
 import Konva from 'konva';
 import { PlayerToken, TeamConfig } from '../../types/tactics';
 import { PitchLayout, normToCanvas, canvasToNorm } from '../../utils/pitchGeometry';
+import { useTacticsStore } from '../../store/useTacticsStore';
 
 interface PlayerTokenNodeProps {
   player: PlayerToken;
@@ -171,12 +172,16 @@ export const PlayerTokenNode: React.FC<PlayerTokenNodeProps> = ({
     onUpdateRotation(player.id, Math.round(angleDeg));
   };
 
+  const { activeTool, isPlaying } = useTacticsStore();
+  const isInteractive = activeTool === 'select' && !isPlaying;
+
   return (
     <Group
       ref={groupRef}
       x={canvasPos.x}
       y={canvasPos.y}
-      draggable
+      draggable={isInteractive}
+      listening={isInteractive}
       onDragStart={handleDragStart}
       onDragMove={handleDragMove}
       onDragEnd={handleDragEnd}

@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import Konva from 'konva';
 import { TopNavbar } from './components/toolbar/TopNavbar';
 import { TacticalCanvas } from './components/canvas/TacticalCanvas';
@@ -6,6 +6,7 @@ import { SquadManager } from './components/sidebar/SquadManager';
 import { PlayerInspector } from './components/sidebar/PlayerInspector';
 import { TimelineBar } from './components/timeline/TimelineBar';
 import { useTacticsStore } from './store/useTacticsStore';
+import { useTacticalPlayback } from './hooks/useTacticalPlayback';
 import { Users, Sliders, ChevronLeft, ChevronRight } from 'lucide-react';
 
 export const App: React.FC = () => {
@@ -15,8 +16,11 @@ export const App: React.FC = () => {
 
   const { selectedPlayerId } = useTacticsStore();
 
+  // Activate playback interpolation loop hook
+  useTacticalPlayback();
+
   // Automatically switch tab to inspector when a player is selected
-  React.useEffect(() => {
+  useEffect(() => {
     if (selectedPlayerId) {
       setSidebarTab('inspector');
     }
@@ -25,7 +29,7 @@ export const App: React.FC = () => {
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden bg-slate-950 font-sans">
       {/* 1. Top Navbar Controls */}
-      <TopNavbar />
+      <TopNavbar stageRef={stageRef} />
 
       {/* 2. Middle Main Workspace (Canvas + Sidebar) */}
       <div className="flex-1 flex overflow-hidden relative">

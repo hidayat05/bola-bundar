@@ -1,11 +1,14 @@
 import { create } from 'zustand';
 import {
+  ActiveTool,
   BallToken,
+  DrawingElement,
   PitchSurface,
   PitchType,
   PitchView,
   PlayerToken,
   TacticalKeyframe,
+  TacticsExportData,
   TeamConfig,
   TeamSide,
 } from '../types/tactics';
@@ -61,7 +64,22 @@ interface TacticsState {
   // Ball
   updateBallPosition: (x: number, y: number) => void;
 
-  // Keyframes
+  // Drawing Tools
+  activeTool: ActiveTool;
+  activeDrawingColor: string;
+  setActiveTool: (tool: ActiveTool) => void;
+  setActiveDrawingColor: (color: string) => void;
+  addDrawing: (drawing: DrawingElement) => void;
+  removeDrawing: (id: string) => void;
+  clearDrawings: () => void;
+
+  // Keyframes & Interpolation
+  interpolatedFrame: TacticalKeyframe | null;
+  playbackProgress: number;
+  isRecording: boolean;
+  setInterpolatedFrame: (frame: TacticalKeyframe | null) => void;
+  setPlaybackProgress: (progress: number) => void;
+  setIsRecording: (recording: boolean) => void;
   setActiveFrame: (index: number) => void;
   addFrame: () => void;
   duplicateFrame: (index: number) => void;
@@ -70,6 +88,7 @@ interface TacticsState {
   setIsPlaying: (playing: boolean) => void;
   setPlaybackSpeed: (speed: number) => void;
   resetTactics: () => void;
+  loadProjectData: (data: TacticsExportData) => void;
 }
 
 const DEFAULT_HOME_TEAM: TeamConfig = {
@@ -127,6 +146,12 @@ export const useTacticsStore = create<TacticsState>((set, get) => {
     isDragging: false,
     isPlaying: false,
     playbackSpeed: 1,
+
+    activeTool: 'select',
+    activeDrawingColor: '#f59e0b',
+    interpolatedFrame: null,
+    playbackProgress: 0,
+    isRecording: false,
 
     setPitchType: (pitchType: PitchType) => {
       // Pick appropriate default surface
@@ -456,6 +481,74 @@ export const useTacticsStore = create<TacticsState>((set, get) => {
       }
     },
 
+    setActiveTool: (tool: ActiveTool) => set({ activeTool: tool, selectedPlayerId: null }),
+    setActiveDrawingColor: (color: string) => set({ activeDrawingColor: color }),
+
+    addDrawing: (drawing: DrawingElement) => {
+      const { frames, activeFrameIndex } = get();
+      const currentFrame = frames[activeFrameIndex];
+      if (!currentFrame) return;
+
+      const existing = currentFrame.drawings || [];
+      const updatedFrames = [...frames];
+      updatedFrames[activeFrameIndex] = {
+        ...currentFrame,
+        drawings: [...existing, drawing],
+      };
+      set({ frames: updatedFrames });
+    },
+
+    removeDrawing: (id: string) => {
+      const { frames, activeFrameIndex } = get();
+      const currentFrame = frames[activeFrameIndex];
+      if (!currentFrame) return;
+
+      const updatedDrawings = (currentFrame.drawings || []).filter((d) => d.id !== id);
+      const updatedFrames = [...frames];
+      updatedFrames[activeFrameIndex] = {
+        ...currentFrame,
+        drawings: updatedDrawings,
+      };
+      set({ frames: updatedFrames });
+    },
+
+    clearDrawings: () => {
+      const { frames, activeFrameIndex } = get();
+      const currentFrame = frames[activeFrameIndex];
+      if (!currentFrame) return;
+
+      const updatedFrames = [...frames];
+      updatedFrames[activeFrameIndex] = {
+        ...currentFrame,
+        drawings: [],
+      };
+      set({ frames: updatedFrames });
+    },
+
+    setInterpolatedFrame: (frame: TacticalKeyframe | null) => set({ interpolatedFrame: frame }),
+    setPlaybackProgress: (playbackProgress: number) => set({ playbackProgress }),
+    setIsRecording: (isRecording: boolean) => set({ isRecording }),
+
+    loadProjectData: (data: TacticsExportData) => {
+      if (!data || !data.frames || data.frames.length === 0) return;
+      set({
+        pitchType: data.pitchType || 'football',
+        pitchView: data.pitchView || 'full',
+        pitchSurface: data.pitchSurface || 'grass',
+        showGrid: !!data.showGrid,
+        showZones: !!data.showZones,
+        homeTeam: data.homeTeam || DEFAULT_HOME_TEAM,
+        awayTeam: data.awayTeam || DEFAULT_AWAY_TEAM,
+        frames: data.frames,
+        activeFrameIndex: 0,
+        selectedPlayerId: null,
+        hoveredPlayerId: null,
+        swapTargetPlayerId: null,
+        interpolatedFrame: null,
+        isPlaying: false,
+      });
+    },
+
     setIsPlaying: (isPlaying: boolean) => set({ isPlaying }),
     setPlaybackSpeed: (playbackSpeed: number) => set({ playbackSpeed }),
 
@@ -468,6 +561,8 @@ export const useTacticsStore = create<TacticsState>((set, get) => {
         selectedPlayerId: null,
         hoveredPlayerId: null,
         swapTargetPlayerId: null,
+        interpolatedFrame: null,
+        isPlaying: false,
       });
     },
   };
