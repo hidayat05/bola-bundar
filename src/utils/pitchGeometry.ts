@@ -47,16 +47,14 @@ export function calculatePitchLayout(
     aspectRatio = 1.2;
   }
 
-  // Margin allocation:
-  // Top margin for headers/labels: 16px
-  // Left/Right margin for run-off: 24px
-  // Bottom margin for Sideline Bench: 70px
-  const marginX = 36;
-  const marginTop = 20;
-  const marginBottom = 76; // Space for bench dock
+  // Margin allocation adaptive for mobile screens
+  const isMobile = width < 600;
+  const marginX = isMobile ? (width < 400 ? 10 : 16) : 36;
+  const marginTop = isMobile ? 12 : 20;
+  const marginBottom = isMobile ? 62 : 76; // Space for bench dock
 
-  const availableWidth = Math.max(200, width - marginX * 2);
-  const availableHeight = Math.max(150, height - (marginTop + marginBottom));
+  const availableWidth = Math.max(160, width - marginX * 2);
+  const availableHeight = Math.max(120, height - (marginTop + marginBottom));
 
   let pitchW = availableWidth;
   let pitchH = pitchW / aspectRatio;
@@ -70,9 +68,9 @@ export function calculatePitchLayout(
   const pitchY = marginTop + (availableHeight - pitchH) / 2;
 
   // Bench dugouts underneath the pitch
-  const benchW = pitchW * 0.46;
-  const benchH = 50;
-  const benchY = pitchY + pitchH + 12;
+  const benchW = pitchW * 0.47;
+  const benchH = isMobile ? 44 : 50;
+  const benchY = pitchY + pitchH + (isMobile ? 8 : 12);
 
   const benchRectHome = {
     x: pitchX,
