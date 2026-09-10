@@ -36,11 +36,16 @@ export const PitchBackground: React.FC<PitchBackgroundProps> = ({
   let stripeColor = '#247a3e';
   let lineColor = '#ffffff';
   let lineOpacity = 0.85;
+  let hasStripes = true;
 
-  if (pitchSurface === 'turf') {
+  if (pitchSurface === 'full-green') {
+    baseColor = '#238636'; // Rich solid vibrant green grass
+    stripeColor = '#238636';
+    hasStripes = false;
+  } else if (pitchSurface === 'turf') {
     baseColor = '#1b5e20';
     stripeColor = '#2e7d32';
-  } else if (pitchSurface === 'blue' || pitchType === 'futsal') {
+  } else if (pitchSurface === 'blue') {
     baseColor = '#1e3a8a';
     stripeColor = '#1d4ed8';
     lineColor = '#ffffff';
@@ -66,19 +71,21 @@ export const PitchBackground: React.FC<PitchBackgroundProps> = ({
   const stripeCount = pitchType === 'futsal' ? 8 : 12;
   const stripeW = w / stripeCount;
   const stripes = [];
-  for (let i = 0; i < stripeCount; i++) {
-    if (i % 2 === 1) {
-      stripes.push(
-        <Rect
-          key={`stripe-${i}`}
-          x={x + i * stripeW}
-          y={y}
-          width={stripeW}
-          height={h}
-          fill={stripeColor}
-          listening={false}
-        />
-      );
+  if (hasStripes) {
+    for (let i = 0; i < stripeCount; i++) {
+      if (i % 2 === 1) {
+        stripes.push(
+          <Rect
+            key={`stripe-${i}`}
+            x={x + i * stripeW}
+            y={y}
+            width={stripeW}
+            height={h}
+            fill={stripeColor}
+            listening={false}
+          />
+        );
+      }
     }
   }
 
