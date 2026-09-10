@@ -49,6 +49,21 @@ export const TimelineBar: React.FC = React.memo(() => {
   const playMenuRef = useRef<HTMLDivElement>(null);
   const plays = getTacticalPlayPresets(pitchType);
 
+  // Height-aware compact detection
+  const [isCompact, setIsCompact] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return window.innerWidth < 1024 || window.innerHeight <= 520;
+  });
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsCompact(window.innerWidth < 1024 || window.innerHeight <= 520);
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   // Close plays menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -82,12 +97,12 @@ export const TimelineBar: React.FC = React.memo(() => {
   };
 
   return (
-    <div className="relative h-16 bg-slate-900 border-t border-slate-800 px-3 sm:px-4 flex items-center justify-between select-none z-20">
+    <div className={`relative bg-slate-900 border-t border-slate-800 px-2 sm:px-4 flex items-center justify-between select-none z-20 transition-all ${isCompact ? 'h-11' : 'h-16'}`}>
       {/* Top Playback Scrubbing Progress Bar */}
       <PlaybackProgressBar />
 
       {/* Left: Playback Controls */}
-      <div data-tour="timeline-controls" className="flex items-center space-x-2">
+      <div data-tour="timeline-controls" className="flex items-center space-x-1 sm:space-x-2">
         <Tooltip
           content={isPlaying ? 'Jeda Animasi' : 'Putar Animasi (Play)'}
           description="Interpolasi pergerakan halus posisi pemain & bola antar-frame"
@@ -95,7 +110,7 @@ export const TimelineBar: React.FC = React.memo(() => {
         >
           <button
             onClick={handleTogglePlay}
-            className={`px-3 py-2 rounded-lg font-bold text-xs flex items-center gap-1.5 transition-all ${
+            className={`px-2.5 py-1 sm:px-3 sm:py-2 rounded-lg font-bold text-xs flex items-center gap-1 sm:gap-1.5 transition-all ${
               isPlaying
                 ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
                 : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-600/20'
@@ -103,12 +118,12 @@ export const TimelineBar: React.FC = React.memo(() => {
           >
             {isPlaying ? (
               <>
-                <Pause className="w-4 h-4 fill-current" />
+                <Pause className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-current" />
                 <span>Pause</span>
               </>
             ) : (
               <>
-                <Play className="w-4 h-4 fill-current" />
+                <Play className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-current" />
                 <span>Play</span>
               </>
             )}
@@ -117,12 +132,12 @@ export const TimelineBar: React.FC = React.memo(() => {
 
         {/* Speed Selector */}
         <Tooltip content="Kecepatan Animasi" description="Pilih kecepatan putar 0.5x s/d 2.0x" position="top">
-          <div className="bg-slate-950 p-0.5 rounded-lg border border-slate-800 flex text-[11px] font-semibold">
+          <div className="bg-slate-950 p-0.5 rounded-lg border border-slate-800 flex text-[10px] sm:text-[11px] font-semibold">
             {[0.5, 1, 1.5, 2].map((spd) => (
               <button
                 key={spd}
                 onClick={() => setPlaybackSpeed(spd)}
-                className={`px-2 py-1 rounded transition-colors ${
+                className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded transition-colors ${
                   playbackSpeed === spd
                     ? 'bg-slate-800 text-emerald-400'
                     : 'text-slate-400 hover:text-slate-200'

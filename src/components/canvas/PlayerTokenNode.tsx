@@ -41,8 +41,11 @@ export const PlayerTokenNode: React.FC<PlayerTokenNodeProps> = React.memo(({
   const groupRef = useRef<Konva.Group>(null);
   const handleRef = useRef<Konva.Circle>(null);
 
-  // Responsive radius
-  const radius = Math.max(14, Math.min(22, layout.pitchRect.width * 0.019));
+  // Responsive radius adaptive for short landscape and compact screens
+  const isShortScreen = layout.containerHeight <= 520;
+  const minRadius = isShortScreen ? 11 : 13.5;
+  const maxRadius = 22;
+  const radius = Math.max(minRadius, Math.min(maxRadius, layout.pitchRect.height * 0.046));
 
   // Determine token colors
   let fillColor = teamConfig.primaryColor;
@@ -283,30 +286,32 @@ export const PlayerTokenNode: React.FC<PlayerTokenNodeProps> = React.memo(({
         listening={false}
       />
 
-      {/* Name / Role Label Pill under player */}
-      <Group y={radius + 8} listening={false}>
-        <Rect
-          x={-28}
-          y={0}
-          width={56}
-          height={14}
-          fill="rgba(15, 23, 42, 0.85)"
-          stroke="rgba(255, 255, 255, 0.2)"
-          strokeWidth={0.5}
-          cornerRadius={4}
-        />
-        <Text
-          text={player.name}
-          fontSize={9}
-          fontFamily="system-ui, sans-serif"
-          fontStyle="bold"
-          fill="#f1f5f9"
-          align="center"
-          width={56}
-          offsetX={28}
-          y={2}
-        />
-      </Group>
+      {/* Name / Role Label Pill under player (clean on compact screens, expands on select/hover) */}
+      {(!isShortScreen || isSelected || isHovered) && (
+        <Group y={radius + (isShortScreen ? 4 : 8)} listening={false}>
+          <Rect
+            x={isShortScreen ? -18 : -28}
+            y={0}
+            width={isShortScreen ? 36 : 56}
+            height={isShortScreen ? 12 : 14}
+            fill="rgba(15, 23, 42, 0.88)"
+            stroke="rgba(255, 255, 255, 0.2)"
+            strokeWidth={0.5}
+            cornerRadius={3}
+          />
+          <Text
+            text={player.name}
+            fontSize={isShortScreen ? 7.5 : 9}
+            fontFamily="system-ui, sans-serif"
+            fontStyle="bold"
+            fill="#f1f5f9"
+            align="center"
+            width={isShortScreen ? 36 : 56}
+            offsetX={isShortScreen ? 18 : 28}
+            y={isShortScreen ? 1.5 : 2}
+          />
+        </Group>
+      )}
 
       {/* Interactive Rotation Handle Anchor (visible when selected) */}
       {isSelected && !player.isBench && (

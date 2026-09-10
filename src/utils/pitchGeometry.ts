@@ -47,11 +47,12 @@ export function calculatePitchLayout(
     aspectRatio = 1.2;
   }
 
-  // Margin allocation adaptive for mobile screens
-  const isMobile = width < 600;
-  const marginX = isMobile ? (width < 400 ? 10 : 16) : 36;
-  const marginTop = isMobile ? 12 : 20;
-  const marginBottom = isMobile ? 62 : 76; // Space for bench dock
+  // Margin allocation adaptive for mobile and compact landscape screens
+  const isShortScreen = height <= 520;
+  const isMobile = width < 600 || isShortScreen;
+  const marginX = isShortScreen ? 12 : (width < 400 ? 10 : (isMobile ? 16 : 36));
+  const marginTop = isShortScreen ? 6 : (isMobile ? 10 : 20);
+  const marginBottom = isShortScreen ? 32 : (isMobile ? 52 : 76); // Space for bench dock
 
   const availableWidth = Math.max(160, width - marginX * 2);
   const availableHeight = Math.max(120, height - (marginTop + marginBottom));
@@ -69,8 +70,8 @@ export function calculatePitchLayout(
 
   // Bench dugouts underneath the pitch
   const benchW = pitchW * 0.47;
-  const benchH = isMobile ? 44 : 50;
-  const benchY = pitchY + pitchH + (isMobile ? 8 : 12);
+  const benchH = isShortScreen ? 24 : (isMobile ? 38 : 50);
+  const benchY = pitchY + pitchH + (isShortScreen ? 4 : (isMobile ? 8 : 12));
 
   const benchRectHome = {
     x: pitchX,

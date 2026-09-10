@@ -130,6 +130,55 @@ export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({ stageRef, onOpe
     };
   }, [zoneColorMenuOpen]);
 
+  // Height-aware compact detection
+  const [isCompact, setIsCompact] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return window.innerWidth < 1024 || window.innerHeight <= 520;
+  });
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsCompact(window.innerWidth < 1024 || window.innerHeight <= 520);
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Fullscreen support
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
+
+  const handleToggleFullscreen = async () => {
+    try {
+      if (!document.fullscreenElement) {
+        await document.documentElement.requestFullscreen();
+        setIsFullscreen(true);
+        if (screen.orientation && 'lock' in screen.orientation) {
+          try {
+            await (screen.orientation as any).lock('landscape');
+          } catch (_) {
+            // Ignore lock error on unsupported browsers
+          }
+        }
+      } else {
+        if (document.exitFullscreen) {
+          await document.exitFullscreen();
+        }
+        setIsFullscreen(false);
+      }
+    } catch (err) {
+      console.warn('Fullscreen error:', err);
+    }
+  };
+
   const currentFrame = frames[activeFrameIndex] || frames[0];
 
   // 1. Snapshot PNG Export
@@ -207,7 +256,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({ stageRef, onOpe
 
   return (
     <>
-      <header className="h-14 bg-slate-900 border-b border-slate-800 px-3 sm:px-4 flex items-center justify-between select-none z-30 relative">
+      <header className={`bg-slate-900 border-b border-slate-800 px-2.5 sm:px-4 flex items-center justify-between select-none z-30 relative transition-all ${isCompact ? 'h-11' : 'h-14'}`}>
         {/* Left: Brand & Sport Type Selector */}
         <div className="flex items-center space-x-2 sm:space-x-3">
           <Tooltip content="Putar Animasi Intro ⚽" description="Tonton kembali animasi bola berputar dan membesar" position="bottom">
@@ -216,7 +265,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({ stageRef, onOpe
               className="flex items-center space-x-2 hover:opacity-85 transition-opacity cursor-pointer group"
               title="Putar Animasi Intro"
             >
-              <div className="w-8 h-8 rounded-lg bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 font-black text-sm shadow-inner shrink-0 group-hover:scale-105 transition-transform">
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 font-black text-xs sm:text-sm shadow-inner shrink-0 group-hover:scale-105 transition-transform">
                 ⚽
               </div>
 
@@ -235,9 +284,9 @@ export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({ stageRef, onOpe
           <div data-tour="pitch-controls" className="bg-slate-950 p-0.5 rounded-lg border border-slate-800 flex text-xs">
             <button
               onClick={() => setPitchType('football')}
-              className={`px-2 sm:px-2.5 py-1.5 rounded-md font-medium transition-all ${
+              className={`px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-md font-medium text-xs transition-all ${
                 pitchType === 'football'
-                  ? 'bg-emerald-600 text-white shadow-sm'
+                  ? 'bg-emerald-600 text-white shadow-sm font-semibold'
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
@@ -245,9 +294,9 @@ export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({ stageRef, onOpe
             </button>
             <button
               onClick={() => setPitchType('mini-soccer')}
-              className={`px-2 sm:px-2.5 py-1.5 rounded-md font-medium transition-all ${
+              className={`px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-md font-medium text-xs transition-all ${
                 pitchType === 'mini-soccer'
-                  ? 'bg-emerald-600 text-white shadow-sm'
+                  ? 'bg-emerald-600 text-white shadow-sm font-semibold'
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
@@ -255,9 +304,9 @@ export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({ stageRef, onOpe
             </button>
             <button
               onClick={() => setPitchType('futsal')}
-              className={`px-2 sm:px-2.5 py-1.5 rounded-md font-medium transition-all ${
+              className={`px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-md font-medium text-xs transition-all ${
                 pitchType === 'futsal'
-                  ? 'bg-blue-600 text-white shadow-sm'
+                  ? 'bg-blue-600 text-white shadow-sm font-semibold'
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
@@ -270,7 +319,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({ stageRef, onOpe
         <div data-tour="solo-mode" className="bg-slate-950 p-0.5 rounded-lg border border-slate-800 flex text-xs shrink-0 items-center">
           <button
             onClick={() => setTeamDisplayMode('both')}
-            className={`px-2 sm:px-2.5 py-1.5 rounded-md font-medium flex items-center gap-1 transition-all ${
+            className={`px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-md font-medium text-xs flex items-center gap-1 transition-all ${
               teamDisplayMode === 'both'
                 ? 'bg-slate-800 text-slate-100 shadow-sm font-semibold'
                 : 'text-slate-400 hover:text-slate-200'
@@ -282,7 +331,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({ stageRef, onOpe
           </button>
           <button
             onClick={() => setTeamDisplayMode('single')}
-            className={`px-2 sm:px-2.5 py-1.5 rounded-md font-medium flex items-center gap-1 transition-all ${
+            className={`px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-md font-medium text-xs flex items-center gap-1 transition-all ${
               teamDisplayMode === 'single'
                 ? 'bg-emerald-600 text-white shadow-sm font-bold ring-1 ring-emerald-400/50'
                 : 'text-slate-400 hover:text-slate-200'
@@ -313,8 +362,9 @@ export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({ stageRef, onOpe
           )}
         </div>
 
-        {/* Center Controls (Desktop & Tablet): View & Pitch Overlays */}
-        <div className="hidden md:flex items-center space-x-2">
+        {/* Center Controls (Desktop & Large Screen Only): View & Pitch Overlays */}
+        {!isCompact && (
+          <div className="flex items-center space-x-2">
           {/* Full vs Half Pitch Toggle */}
           <div className="bg-slate-950 p-0.5 rounded-lg border border-slate-800 flex text-xs">
             <button
@@ -479,9 +529,21 @@ export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({ stageRef, onOpe
             <span className="text-[11px]">Grid</span>
           </button>
         </div>
+        )}
 
-        {/* Right Controls: Desktop full buttons & Mobile hamburger */}
+        {/* Right Controls: Fullscreen, Record, Desktop buttons & Mobile hamburger */}
         <div className="flex items-center space-x-1 sm:space-x-1.5">
+          {/* Fullscreen Mode Toggle Button */}
+          <Tooltip content={isFullscreen ? 'Keluar Layar Penuh (Esc)' : 'Mode Layar Penuh (Fullscreen)'} position="bottom">
+            <button
+              onClick={handleToggleFullscreen}
+              className="p-1.5 sm:p-2 rounded-lg bg-slate-800/80 border border-slate-700 text-slate-300 hover:text-emerald-400 hover:border-emerald-500/50 flex items-center justify-center transition-colors"
+              title={isFullscreen ? 'Keluar Layar Penuh' : 'Layar Penuh'}
+            >
+              {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+            </button>
+          </Tooltip>
+
           {/* Panduan / Help Tour Button */}
           <Tooltip content="Panduan Tutorial" description="Buka alur panduan langkah demi langkah interaktif" position="bottom">
             <button
@@ -518,60 +580,64 @@ export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({ stageRef, onOpe
             </button>
           </Tooltip>
 
-          {/* Desktop Only Buttons */}
-          <div data-tour="export-controls" className="hidden md:flex items-center space-x-1.5">
-            {/* Snapshot PNG */}
-            <Tooltip content="Ambil Foto PNG" description="Simpan gambar resolusi tinggi papan taktik" position="bottom">
-              <button
-                onClick={handleSnapshot}
-                className="p-1.5 px-2 rounded-lg bg-slate-800/80 border border-slate-700 text-slate-300 hover:text-white text-xs flex items-center gap-1 transition-colors"
-              >
-                <Camera className="w-3.5 h-3.5 text-sky-400" />
-                <span className="hidden xl:inline">PNG</span>
-              </button>
-            </Tooltip>
+          {/* Desktop Only Export Buttons */}
+          {!isCompact && (
+            <div data-tour="export-controls" className="flex items-center space-x-1.5">
+              {/* Snapshot PNG */}
+              <Tooltip content="Ambil Foto PNG" description="Simpan gambar resolusi tinggi papan taktik" position="bottom">
+                <button
+                  onClick={handleSnapshot}
+                  className="p-1.5 px-2 rounded-lg bg-slate-800/80 border border-slate-700 text-slate-300 hover:text-white text-xs flex items-center gap-1 transition-colors"
+                >
+                  <Camera className="w-3.5 h-3.5 text-sky-400" />
+                  <span className="hidden xl:inline">PNG</span>
+                </button>
+              </Tooltip>
 
-            {/* Export JSON */}
-            <Tooltip content="Ekspor Proyek" description="Simpan file taktik .json ke komputer" position="bottom">
-              <button
-                onClick={handleExportJson}
-                className="p-1.5 px-2 rounded-lg bg-slate-800/80 border border-slate-700 text-slate-300 hover:text-white text-xs flex items-center gap-1 transition-colors"
-              >
-                <Download className="w-3.5 h-3.5 text-emerald-400" />
-                <span className="hidden xl:inline">Export</span>
-              </button>
-            </Tooltip>
+              {/* Export JSON */}
+              <Tooltip content="Ekspor Proyek" description="Simpan file taktik .json ke komputer" position="bottom">
+                <button
+                  onClick={handleExportJson}
+                  className="p-1.5 px-2 rounded-lg bg-slate-800/80 border border-slate-700 text-slate-300 hover:text-white text-xs flex items-center gap-1 transition-colors"
+                >
+                  <Download className="w-3.5 h-3.5 text-emerald-400" />
+                  <span className="hidden xl:inline">Export</span>
+                </button>
+              </Tooltip>
 
-            {/* Import JSON */}
-            <Tooltip content="Impor Proyek" description="Buka file taktik .json yang pernah disimpan" position="bottom">
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="p-1.5 px-2 rounded-lg bg-slate-800/80 border border-slate-700 text-slate-300 hover:text-white text-xs flex items-center gap-1 transition-colors"
-              >
-                <Upload className="w-3.5 h-3.5 text-amber-400" />
-                <span className="hidden xl:inline">Import</span>
-              </button>
-            </Tooltip>
+              {/* Import JSON */}
+              <Tooltip content="Impor Proyek" description="Buka file taktik .json yang pernah disimpan" position="bottom">
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="p-1.5 px-2 rounded-lg bg-slate-800/80 border border-slate-700 text-slate-300 hover:text-white text-xs flex items-center gap-1 transition-colors"
+                >
+                  <Upload className="w-3.5 h-3.5 text-amber-400" />
+                  <span className="hidden xl:inline">Import</span>
+                </button>
+              </Tooltip>
 
-            {/* Reset Formation */}
-            <Tooltip content="Reset Lapangan" description="Kembalikan semua pemain ke posisi awal" position="bottom">
-              <button
-                onClick={resetTactics}
-                className="p-1.5 rounded-lg bg-slate-800/60 border border-slate-700 text-slate-400 hover:text-rose-400 transition-colors"
-              >
-                <RotateCcw className="w-3.5 h-3.5" />
-              </button>
-            </Tooltip>
-          </div>
+              {/* Reset Formation */}
+              <Tooltip content="Reset Lapangan" description="Kembalikan semua pemain ke posisi awal" position="bottom">
+                <button
+                  onClick={resetTactics}
+                  className="p-1.5 rounded-lg bg-slate-800/60 border border-slate-700 text-slate-400 hover:text-rose-400 transition-colors"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                </button>
+              </Tooltip>
+            </div>
+          )}
 
-          {/* Mobile Menu Button */}
-          <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden p-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 hover:text-white"
-            title="Open Menu"
-          >
-            {mobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
-          </button>
+          {/* Compact / Mobile Menu Button */}
+          {isCompact && (
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="p-1.5 sm:p-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 hover:text-white"
+              title="Buka Menu Pengaturan"
+            >
+              {mobileMenuOpen ? <X className="w-4 h-4 text-emerald-400" /> : <Menu className="w-4 h-4" />}
+            </button>
+          )}
         </div>
 
         <input
@@ -583,9 +649,9 @@ export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({ stageRef, onOpe
         />
       </header>
 
-      {/* Mobile Slide-Down Actions Sheet */}
-      {mobileMenuOpen && (
-        <div className="md:hidden bg-slate-900/98 backdrop-blur-xl border-b border-slate-800 p-4 space-y-4 shadow-2xl z-20 animate-in slide-in-from-top duration-200">
+      {/* Mobile / Compact Slide-Down Actions Sheet */}
+      {isCompact && mobileMenuOpen && (
+        <div className="bg-slate-900/98 backdrop-blur-xl border-b border-slate-800 p-4 space-y-4 shadow-2xl z-20 animate-in slide-in-from-top duration-200 max-h-[85vh] overflow-y-auto">
           {/* Team Display Mode (2 Teams vs 1 Team) */}
           <div>
             <label className="text-[10px] uppercase font-bold text-slate-400 block mb-1">
