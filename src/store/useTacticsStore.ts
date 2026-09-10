@@ -21,6 +21,7 @@ interface TacticsState {
   pitchSurface: PitchSurface;
   showGrid: boolean;
   showZones: boolean;
+  zoneColor: string;
   teamDisplayMode: TeamDisplayMode; // 'both' | 'single'
   soloTeamSide: 'home' | 'away';
 
@@ -43,6 +44,7 @@ interface TacticsState {
   setPitchSurface: (surface: PitchSurface) => void;
   setShowGrid: (show: boolean) => void;
   setShowZones: (show: boolean) => void;
+  setZoneColor: (color: string) => void;
   setTeamDisplayMode: (mode: TeamDisplayMode) => void;
   setSoloTeamSide: (side: 'home' | 'away') => void;
 
@@ -138,6 +140,7 @@ export const useTacticsStore = create<TacticsState>((set, get) => {
     pitchSurface: 'grass',
     showGrid: false,
     showZones: false,
+    zoneColor: '#fbbf24',
     teamDisplayMode: 'both',
     soloTeamSide: 'home',
 
@@ -177,6 +180,7 @@ export const useTacticsStore = create<TacticsState>((set, get) => {
     setPitchSurface: (pitchSurface: PitchSurface) => set({ pitchSurface }),
     setShowGrid: (showGrid: boolean) => set({ showGrid }),
     setShowZones: (showZones: boolean) => set({ showZones }),
+    setZoneColor: (zoneColor: string) => set({ zoneColor }),
     setTeamDisplayMode: (teamDisplayMode: TeamDisplayMode) => set({ teamDisplayMode }),
     setSoloTeamSide: (soloTeamSide: 'home' | 'away') => set({ soloTeamSide }),
 
@@ -546,6 +550,7 @@ export const useTacticsStore = create<TacticsState>((set, get) => {
         pitchSurface: data.pitchSurface || 'grass',
         showGrid: !!data.showGrid,
         showZones: !!data.showZones,
+        zoneColor: data.zoneColor || '#fbbf24',
         homeTeam: data.homeTeam || DEFAULT_HOME_TEAM,
         awayTeam: data.awayTeam || DEFAULT_AWAY_TEAM,
         frames: data.frames,

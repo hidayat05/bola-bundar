@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Layers,
   Grid,
@@ -14,7 +14,20 @@ import {
   X,
   Users,
   User,
+  Palette,
+  ChevronDown,
 } from 'lucide-react';
+
+const ZONE_COLORS = [
+  { name: 'Amber', color: '#fbbf24' },
+  { name: 'White', color: '#ffffff' },
+  { name: 'Cyan', color: '#38bdf8' },
+  { name: 'Red', color: '#ef4444' },
+  { name: 'Lime', color: '#84cc16' },
+  { name: 'Orange', color: '#f97316' },
+  { name: 'Pink', color: '#f43f5e' },
+  { name: 'Blue', color: '#3b82f6' },
+];
 import Konva from 'konva';
 import { useTacticsStore } from '../../store/useTacticsStore';
 import { PitchSurface } from '../../types/tactics';
@@ -36,6 +49,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ stageRef }) => {
     pitchSurface,
     showGrid,
     showZones,
+    zoneColor,
     teamDisplayMode,
     soloTeamSide,
     homeTeam,
@@ -48,6 +62,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ stageRef }) => {
     setPitchSurface,
     setShowGrid,
     setShowZones,
+    setZoneColor,
     setTeamDisplayMode,
     setSoloTeamSide,
     resetTactics,
@@ -57,10 +72,30 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ stageRef }) => {
   } = useTacticsStore();
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [zoneColorMenuOpen, setZoneColorMenuOpen] = useState(false);
+  const zoneColorMenuRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const recorderRef = useRef<CanvasVideoRecorder | null>(null);
   const [recordDuration, setRecordDuration] = useState(0);
   const recordTimerRef = useRef<number | null>(null);
+
+  // Close zone color popover when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        zoneColorMenuRef.current &&
+        !zoneColorMenuRef.current.contains(e.target as Node)
+      ) {
+        setZoneColorMenuOpen(false);
+      }
+    };
+    if (zoneColorMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [zoneColorMenuOpen]);
 
   const currentFrame = frames[activeFrameIndex] || frames[0];
 
@@ -79,6 +114,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ stageRef }) => {
       pitchSurface,
       showGrid,
       showZones,
+      zoneColor,
       homeTeam,
       awayTeam,
       frames,
@@ -292,19 +328,101 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ stageRef }) => {
             </select>
           </div>
 
-          {/* Tactical 18 Zones */}
-          <button
-            onClick={() => setShowZones(!showZones)}
-            className={`p-1.5 px-2 rounded-lg border text-xs flex items-center gap-1.5 transition-colors ${
-              showZones
-                ? 'bg-amber-500/20 border-amber-500/40 text-amber-300'
-                : 'bg-slate-800/60 border-slate-700 text-slate-400 hover:text-slate-200'
-            }`}
-            title="Toggle Tactical 18-Zones & Half-spaces"
-          >
-            <Layers className="w-3.5 h-3.5" />
-            <span className="text-[11px]">18 Zones</span>
-          </button>
+          {/* Tactical 18 Zones with Integrated Color Changer */}
+          <div className="relative flex items-center">
+            <button
+              onClick={() => setShowZones(!showZones)}
+              className={`p-1.5 px-2 text-xs flex items-center gap-1.5 transition-colors border ${
+                showZones
+                  ? 'rounded-l-lg border-r-0 bg-slate-800 border-slate-700 text-slate-100 font-medium'
+                  : 'rounded-lg bg-slate-800/60 border-slate-700 text-slate-400 hover:text-slate-200'
+              }`}
+              title="Toggle Tactical 18-Zones & Half-spaces"
+            >
+              <Layers
+                className="w-3.5 h-3.5 transition-colors"
+                style={{ color: showZones ? zoneColor : undefined }}
+              />
+              <span className="text-[11px]">18 Zones</span>
+            </button>
+
+            {/* Color Changer Trigger & Popover */}
+            {showZones && (
+              <div className="relative" ref={zoneColorMenuRef}>
+                <button
+                  type="button"
+                  onClick={() => setZoneColorMenuOpen(!zoneColorMenuOpen)}
+                  className="p-1.5 px-1.5 rounded-r-lg border border-slate-700 bg-slate-800/90 hover:bg-slate-700 text-xs flex items-center gap-1 transition-colors"
+                  title="Change 18-Zone Color"
+                >
+                  <span
+                    className="w-3 h-3 rounded-full border border-white/60 shadow-sm"
+                    style={{ backgroundColor: zoneColor }}
+                  />
+                  <ChevronDown className="w-3 h-3 text-slate-400" />
+                </button>
+
+                {zoneColorMenuOpen && (
+                  <div className="absolute top-full left-0 mt-2 z-50 bg-slate-900 border border-slate-700 rounded-xl p-3 shadow-2xl w-60 animate-in fade-in">
+                    <div className="flex items-center justify-between pb-2 border-b border-slate-800 mb-2.5">
+                      <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-200">
+                        <Palette className="w-3.5 h-3.5" style={{ color: zoneColor }} />
+                        <span>18 Zones Color</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setZoneColorMenuOpen(false)}
+                        className="text-slate-400 hover:text-slate-200 text-xs px-1 rounded"
+                      >
+                        ✕
+                      </button>
+                    </div>
+
+                    {/* Preset Swatches */}
+                    <div className="grid grid-cols-4 gap-1.5 mb-3">
+                      {ZONE_COLORS.map((c) => (
+                        <button
+                          key={c.color}
+                          type="button"
+                          onClick={() => setZoneColor(c.color)}
+                          className={`flex flex-col items-center p-1.5 rounded-lg border transition-all ${
+                            zoneColor.toLowerCase() === c.color.toLowerCase()
+                              ? 'border-white bg-slate-800 shadow-md scale-105'
+                              : 'border-transparent hover:bg-slate-800/60'
+                          }`}
+                          title={c.name}
+                        >
+                          <span
+                            className="w-5 h-5 rounded-full border border-white/30 shadow-inner"
+                            style={{ backgroundColor: c.color }}
+                          />
+                          <span className="text-[10px] text-slate-300 mt-1 font-medium truncate w-full text-center">
+                            {c.name}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Custom Hex Color Picker */}
+                    <div className="pt-2 border-t border-slate-800 flex items-center justify-between gap-2">
+                      <span className="text-[11px] text-slate-400">Custom:</span>
+                      <label className="flex items-center gap-2 bg-slate-950 border border-slate-800 rounded-lg px-2 py-1 cursor-pointer hover:border-slate-700">
+                        <input
+                          type="color"
+                          value={zoneColor}
+                          onChange={(e) => setZoneColor(e.target.value)}
+                          className="w-4 h-4 rounded cursor-pointer bg-transparent border-0 p-0"
+                        />
+                        <span className="text-[11px] font-mono text-slate-200 uppercase font-semibold">
+                          {zoneColor}
+                        </span>
+                      </label>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
 
           {/* Grid */}
           <button
@@ -497,30 +615,79 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ stageRef }) => {
           </div>
 
           {/* Overlays (Zones & Grid) */}
-          <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-800">
-            <button
-              onClick={() => setShowZones(!showZones)}
-              className={`p-2 rounded-lg border text-xs flex items-center justify-center gap-1.5 font-medium ${
-                showZones
-                  ? 'bg-amber-500/20 border-amber-500/50 text-amber-300'
-                  : 'bg-slate-950 border-slate-800 text-slate-400'
-              }`}
-            >
-              <Layers className="w-3.5 h-3.5" />
-              <span>18 Zones {showZones ? 'ON' : 'OFF'}</span>
-            </button>
+          <div className="pt-1 border-t border-slate-800 space-y-2">
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => setShowZones(!showZones)}
+                className={`p-2 rounded-lg border text-xs flex items-center justify-center gap-1.5 font-medium ${
+                  showZones
+                    ? 'bg-slate-800 border-slate-700 text-slate-100'
+                    : 'bg-slate-950 border-slate-800 text-slate-400'
+                }`}
+              >
+                <Layers
+                  className="w-3.5 h-3.5"
+                  style={{ color: showZones ? zoneColor : undefined }}
+                />
+                <span>18 Zones {showZones ? 'ON' : 'OFF'}</span>
+              </button>
 
-            <button
-              onClick={() => setShowGrid(!showGrid)}
-              className={`p-2 rounded-lg border text-xs flex items-center justify-center gap-1.5 font-medium ${
-                showGrid
-                  ? 'bg-blue-500/20 border-blue-500/50 text-blue-300'
-                  : 'bg-slate-950 border-slate-800 text-slate-400'
-              }`}
-            >
-              <Grid className="w-3.5 h-3.5" />
-              <span>Grid {showGrid ? 'ON' : 'OFF'}</span>
-            </button>
+              <button
+                onClick={() => setShowGrid(!showGrid)}
+                className={`p-2 rounded-lg border text-xs flex items-center justify-center gap-1.5 font-medium ${
+                  showGrid
+                    ? 'bg-blue-500/20 border-blue-500/50 text-blue-300'
+                    : 'bg-slate-950 border-slate-800 text-slate-400'
+                }`}
+              >
+                <Grid className="w-3.5 h-3.5" />
+                <span>Grid {showGrid ? 'ON' : 'OFF'}</span>
+              </button>
+            </div>
+
+            {/* Mobile 18 Zone Color Picker (visible when 18 zones is active) */}
+            {showZones && (
+              <div className="bg-slate-950/90 border border-slate-800/90 rounded-xl p-2.5 space-y-2">
+                <div className="flex items-center justify-between text-[11px] text-slate-400">
+                  <div className="flex items-center gap-1.5">
+                    <Palette className="w-3.5 h-3.5" style={{ color: zoneColor }} />
+                    <span className="text-slate-200 font-semibold">18 Zone Color:</span>
+                  </div>
+                  <span className="font-mono uppercase text-slate-300 text-[10px] font-bold">
+                    {zoneColor}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+                  {ZONE_COLORS.map((c) => (
+                    <button
+                      key={c.color}
+                      type="button"
+                      onClick={() => setZoneColor(c.color)}
+                      className={`flex-shrink-0 w-7 h-7 rounded-full border transition-transform ${
+                        zoneColor.toLowerCase() === c.color.toLowerCase()
+                          ? 'border-white scale-110 ring-2 ring-white/40 shadow-md'
+                          : 'border-white/20 opacity-80'
+                      }`}
+                      style={{ backgroundColor: c.color }}
+                      title={c.name}
+                    />
+                  ))}
+                  {/* Custom color input */}
+                  <label
+                    className="flex-shrink-0 relative w-7 h-7 rounded-full border border-slate-700 bg-slate-800 flex items-center justify-center cursor-pointer overflow-hidden hover:border-slate-500"
+                    title="Custom Color"
+                  >
+                    <input
+                      type="color"
+                      value={zoneColor}
+                      onChange={(e) => setZoneColor(e.target.value)}
+                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                    />
+                    <Palette className="w-3.5 h-3.5 text-slate-300 pointer-events-none" />
+                  </label>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Export & Reset Actions */}

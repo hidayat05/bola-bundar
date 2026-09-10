@@ -25,6 +25,7 @@ export function exportTacticsToJson(data: {
   pitchSurface: PitchSurface;
   showGrid: boolean;
   showZones: boolean;
+  zoneColor?: string;
   homeTeam: TeamConfig;
   awayTeam: TeamConfig;
   frames: TacticalKeyframe[];

@@ -91,6 +91,7 @@ export interface TacticsExportData {
   pitchSurface: PitchSurface;
   showGrid: boolean;
   showZones: boolean;
+  zoneColor?: string;
   homeTeam: TeamConfig;
   awayTeam: TeamConfig;
   frames: TacticalKeyframe[];
