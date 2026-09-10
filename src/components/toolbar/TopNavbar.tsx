@@ -29,6 +29,7 @@ const ZONE_COLORS = [
   { name: 'Blue', color: '#3b82f6' },
 ];
 import Konva from 'konva';
+import { useShallow } from 'zustand/react/shallow';
 import { useTacticsStore } from '../../store/useTacticsStore';
 import { PitchSurface } from '../../types/tactics';
 import {
@@ -42,7 +43,7 @@ interface TopNavbarProps {
   stageRef: React.RefObject<Konva.Stage>;
 }
 
-export const TopNavbar: React.FC<TopNavbarProps> = ({ stageRef }) => {
+export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({ stageRef }) => {
   const {
     pitchType,
     pitchView,
@@ -69,7 +70,35 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ stageRef }) => {
     setIsRecording,
     setIsPlaying,
     loadProjectData,
-  } = useTacticsStore();
+  } = useTacticsStore(
+    useShallow((s) => ({
+      pitchType: s.pitchType,
+      pitchView: s.pitchView,
+      pitchSurface: s.pitchSurface,
+      showGrid: s.showGrid,
+      showZones: s.showZones,
+      zoneColor: s.zoneColor,
+      teamDisplayMode: s.teamDisplayMode,
+      soloTeamSide: s.soloTeamSide,
+      homeTeam: s.homeTeam,
+      awayTeam: s.awayTeam,
+      frames: s.frames,
+      activeFrameIndex: s.activeFrameIndex,
+      isRecording: s.isRecording,
+      setPitchType: s.setPitchType,
+      setPitchView: s.setPitchView,
+      setPitchSurface: s.setPitchSurface,
+      setShowGrid: s.setShowGrid,
+      setShowZones: s.setShowZones,
+      setZoneColor: s.setZoneColor,
+      setTeamDisplayMode: s.setTeamDisplayMode,
+      setSoloTeamSide: s.setSoloTeamSide,
+      resetTactics: s.resetTactics,
+      setIsRecording: s.setIsRecording,
+      setIsPlaying: s.setIsPlaying,
+      loadProjectData: s.loadProjectData,
+    }))
+  );
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [zoneColorMenuOpen, setZoneColorMenuOpen] = useState(false);
@@ -733,4 +762,4 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ stageRef }) => {
       )}
     </>
   );
-};
+});

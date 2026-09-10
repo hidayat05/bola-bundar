@@ -17,7 +17,7 @@ interface PitchBackgroundProps {
   soloTeamSide?: 'home' | 'away';
 }
 
-export const PitchBackground: React.FC<PitchBackgroundProps> = ({
+export const PitchBackground: React.FC<PitchBackgroundProps> = React.memo(({
   layout,
   pitchType,
   pitchView,
@@ -531,4 +531,4 @@ export const PitchBackground: React.FC<PitchBackgroundProps> = ({
       )}
     </Group>
   );
-};
+});

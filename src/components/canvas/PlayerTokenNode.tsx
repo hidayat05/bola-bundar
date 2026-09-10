@@ -22,7 +22,7 @@ interface PlayerTokenNodeProps {
   setIsDragging: (dragging: boolean) => void;
 }
 
-export const PlayerTokenNode: React.FC<PlayerTokenNodeProps> = ({
+export const PlayerTokenNode: React.FC<PlayerTokenNodeProps> = React.memo(({
   player,
   teamConfig,
   layout,
@@ -172,7 +172,8 @@ export const PlayerTokenNode: React.FC<PlayerTokenNodeProps> = ({
     onUpdateRotation(player.id, Math.round(angleDeg));
   };
 
-  const { activeTool, isPlaying } = useTacticsStore();
+  const activeTool = useTacticsStore((s) => s.activeTool);
+  const isPlaying = useTacticsStore((s) => s.isPlaying);
   const isInteractive = activeTool === 'select' && !isPlaying;
 
   return (
@@ -348,4 +349,4 @@ export const PlayerTokenNode: React.FC<PlayerTokenNodeProps> = ({
       )}
     </Group>
   );
-};
+});

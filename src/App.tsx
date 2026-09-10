@@ -15,7 +15,7 @@ export const App: React.FC = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
 
-  const { selectedPlayerId } = useTacticsStore();
+  const selectedPlayerId = useTacticsStore((s) => s.selectedPlayerId);
 
   // Activate playback interpolation loop hook
   useTacticalPlayback();

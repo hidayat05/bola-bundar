@@ -10,13 +10,11 @@ interface DrawingLayerProps {
   drawings: DrawingElement[];
 }
 
-export const DrawingLayer: React.FC<DrawingLayerProps> = ({ layout, drawings }) => {
-  const {
-    activeTool,
-    activeDrawingColor,
-    addDrawing,
-    removeDrawing,
-  } = useTacticsStore();
+export const DrawingLayer: React.FC<DrawingLayerProps> = React.memo(({ layout, drawings }) => {
+  const activeTool = useTacticsStore((s) => s.activeTool);
+  const activeDrawingColor = useTacticsStore((s) => s.activeDrawingColor);
+  const addDrawing = useTacticsStore((s) => s.addDrawing);
+  const removeDrawing = useTacticsStore((s) => s.removeDrawing);
 
   const [currentDraft, setCurrentDraft] = useState<{
     startX: number;
@@ -338,4 +336,4 @@ export const DrawingLayer: React.FC<DrawingLayerProps> = ({ layout, drawings }) 
       )}
     </Group>
   );
-};
+});

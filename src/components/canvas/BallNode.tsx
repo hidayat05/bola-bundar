@@ -13,15 +13,16 @@ interface BallNodeProps {
   setIsDragging: (dragging: boolean) => void;
 }
 
-export const BallNode: React.FC<BallNodeProps> = ({
+export const BallNode: React.FC<BallNodeProps> = React.memo(({
   ball,
   layout,
   onUpdatePosition,
   setIsDragging,
 }) => {
-  const { activeTool, isPlaying, frames, activeFrameIndex } = useTacticsStore();
+  const activeTool = useTacticsStore((s) => s.activeTool);
+  const isPlaying = useTacticsStore((s) => s.isPlaying);
+  const currentFrame = useTacticsStore((s) => s.frames[s.activeFrameIndex]);
   const isInteractive = activeTool === 'select' && !isPlaying;
-  const currentFrame = frames[activeFrameIndex];
 
   const radius = Math.max(7, Math.min(11, layout.pitchRect.width * 0.01));
   const canvasPos = normToCanvas(ball.x, ball.y, false, 'neutral', layout);
@@ -99,4 +100,4 @@ export const BallNode: React.FC<BallNodeProps> = ({
       />
     </Group>
   );
-};
+});

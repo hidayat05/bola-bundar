@@ -5,11 +5,12 @@ import {
   Armchair,
   Settings2,
 } from 'lucide-react';
+import { useShallow } from 'zustand/react/shallow';
 import { useTacticsStore } from '../../store/useTacticsStore';
 import { TeamSide } from '../../types/tactics';
 import { getFormationsForPitch } from '../../utils/formations';
 
-export const SquadManager: React.FC = () => {
+export const SquadManager: React.FC = React.memo(() => {
   const [activeTab, setActiveTab] = useState<TeamSide>('home');
   const [showTeamCustomizer, setShowTeamCustomizer] = useState(false);
 
@@ -29,7 +30,25 @@ export const SquadManager: React.FC = () => {
     teamDisplayMode,
     soloTeamSide,
     setSoloTeamSide,
-  } = useTacticsStore();
+  } = useTacticsStore(
+    useShallow((s) => ({
+      pitchType: s.pitchType,
+      frames: s.frames,
+      activeFrameIndex: s.activeFrameIndex,
+      homeTeam: s.homeTeam,
+      awayTeam: s.awayTeam,
+      selectedPlayerId: s.selectedPlayerId,
+      selectPlayer: s.selectPlayer,
+      addPlayer: s.addPlayer,
+      applyFormation: s.applyFormation,
+      updateHomeTeam: s.updateHomeTeam,
+      updateAwayTeam: s.updateAwayTeam,
+      toggleBenchPlayer: s.toggleBenchPlayer,
+      teamDisplayMode: s.teamDisplayMode,
+      soloTeamSide: s.soloTeamSide,
+      setSoloTeamSide: s.setSoloTeamSide,
+    }))
+  );
 
   const currentFrame = frames[activeFrameIndex];
   if (!currentFrame) return null;
@@ -348,4 +367,4 @@ export const SquadManager: React.FC = () => {
       </div>
     </div>
   );
-};
+});

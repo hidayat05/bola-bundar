@@ -11,9 +11,10 @@ import {
   Armchair,
   Palette,
 } from 'lucide-react';
+import { useShallow } from 'zustand/react/shallow';
 import { useTacticsStore } from '../../store/useTacticsStore';
 
-export const PlayerInspector: React.FC = () => {
+export const PlayerInspector: React.FC = React.memo(() => {
   const {
     frames,
     activeFrameIndex,
@@ -25,7 +26,20 @@ export const PlayerInspector: React.FC = () => {
     toggleBenchPlayer,
     removePlayer,
     selectPlayer,
-  } = useTacticsStore();
+  } = useTacticsStore(
+    useShallow((s) => ({
+      frames: s.frames,
+      activeFrameIndex: s.activeFrameIndex,
+      selectedPlayerId: s.selectedPlayerId,
+      homeTeam: s.homeTeam,
+      awayTeam: s.awayTeam,
+      updatePlayer: s.updatePlayer,
+      updatePlayerRotation: s.updatePlayerRotation,
+      toggleBenchPlayer: s.toggleBenchPlayer,
+      removePlayer: s.removePlayer,
+      selectPlayer: s.selectPlayer,
+    }))
+  );
 
   const currentFrame = frames[activeFrameIndex];
   const selectedPlayer = currentFrame?.players.find((p) => p.id === selectedPlayerId);
@@ -259,4 +273,4 @@ export const PlayerInspector: React.FC = () => {
       </div>
     </div>
   );
-};
+});
