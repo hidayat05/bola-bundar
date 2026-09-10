@@ -11,14 +11,29 @@ import {
 import { useTacticsStore } from '../../store/useTacticsStore';
 import { getTacticalPlayPresets } from '../../utils/tacticalPlays';
 
-export const TimelineBar: React.FC = () => {
+const PlaybackProgressBar: React.FC = React.memo(() => {
+  const isPlaying = useTacticsStore((s) => s.isPlaying);
+  const playbackProgress = useTacticsStore((s) => s.playbackProgress);
+
+  if (!isPlaying) return null;
+
+  return (
+    <div className="absolute top-0 left-0 right-0 h-1 bg-slate-800 overflow-hidden">
+      <div
+        className="h-full bg-emerald-500 transition-all duration-75 ease-linear shadow-sm shadow-emerald-500"
+        style={{ width: `${Math.min(100, Math.max(0, playbackProgress * 100))}%` }}
+      />
+    </div>
+  );
+});
+
+export const TimelineBar: React.FC = React.memo(() => {
   const {
     pitchType,
     frames,
     activeFrameIndex,
     isPlaying,
     playbackSpeed,
-    playbackProgress,
     setActiveFrame,
     addFrame,
     duplicateFrame,
@@ -68,14 +83,7 @@ export const TimelineBar: React.FC = () => {
   return (
     <div className="relative h-16 bg-slate-900 border-t border-slate-800 px-3 sm:px-4 flex items-center justify-between select-none z-20">
       {/* Top Playback Scrubbing Progress Bar */}
-      {isPlaying && (
-        <div className="absolute top-0 left-0 right-0 h-1 bg-slate-800 overflow-hidden">
-          <div
-            className="h-full bg-emerald-500 transition-all duration-75 ease-linear shadow-sm shadow-emerald-500"
-            style={{ width: `${Math.min(100, Math.max(0, playbackProgress * 100))}%` }}
-          />
-        </div>
-      )}
+      <PlaybackProgressBar />
 
       {/* Left: Playback Controls */}
       <div className="flex items-center space-x-2">
@@ -275,4 +283,4 @@ export const TimelineBar: React.FC = () => {
       </div>
     </div>
   );
-};
+});

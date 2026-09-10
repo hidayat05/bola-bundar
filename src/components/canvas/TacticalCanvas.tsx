@@ -127,7 +127,7 @@ export const TacticalCanvas: React.FC<TacticalCanvasProps> = ({ stageRef }) => {
         onTap={handleStageClick}
       >
         {/* Layer 1: Pitch grass, markings, grid, and dugouts */}
-        <Layer>
+        <Layer listening={false}>
           <PitchBackground
             layout={layout}
             pitchType={pitchType}
