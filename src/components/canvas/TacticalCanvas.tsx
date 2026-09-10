@@ -23,6 +23,7 @@ export const TacticalCanvas: React.FC<TacticalCanvasProps> = ({ stageRef }) => {
     pitchSurface,
     showGrid,
     showZones,
+    zoneColor,
     teamDisplayMode,
     soloTeamSide,
     homeTeam,
@@ -134,6 +135,7 @@ export const TacticalCanvas: React.FC<TacticalCanvasProps> = ({ stageRef }) => {
             pitchSurface={pitchSurface}
             showGrid={showGrid}
             showZones={showZones}
+            zoneColor={zoneColor}
             homeTeamName={homeTeam.name}
             awayTeamName={awayTeam.name}
             teamDisplayMode={teamDisplayMode}

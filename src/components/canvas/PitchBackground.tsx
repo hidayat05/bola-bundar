@@ -10,6 +10,7 @@ interface PitchBackgroundProps {
   pitchSurface: PitchSurface;
   showGrid: boolean;
   showZones: boolean;
+  zoneColor?: string;
   homeTeamName: string;
   awayTeamName: string;
   teamDisplayMode?: 'both' | 'single';
@@ -23,6 +24,7 @@ export const PitchBackground: React.FC<PitchBackgroundProps> = ({
   pitchSurface,
   showGrid,
   showZones,
+  zoneColor = '#fbbf24',
   homeTeamName,
   awayTeamName,
   teamDisplayMode = 'both',
@@ -386,27 +388,70 @@ export const PitchBackground: React.FC<PitchBackgroundProps> = ({
 
       {/* Tactical Zones Overlay (18-Zone grid / Half-spaces) */}
       {showZones && (
-        <Group opacity={0.35}>
-          {/* 6 horizontal zones */}
+        <Group listening={false}>
+          {/* 6 horizontal zones (5 dividing lines) */}
           {[1, 2, 3, 4, 5].map((idx) => (
             <Line
               key={`zone-col-${idx}`}
               points={[x + (idx * w) / 6, y, x + (idx * w) / 6, y + h]}
-              stroke="#fbbf24"
-              strokeWidth={1}
+              stroke={zoneColor}
+              strokeWidth={1.5}
               dash={[6, 6]}
+              opacity={0.65}
             />
           ))}
-          {/* 3 vertical zones (Flanks & Central/Half-spaces) */}
+          {/* 3 vertical zones (Flanks & Central/Half-spaces - 2 dividing lines) */}
           {[1, 2].map((idx) => (
             <Line
               key={`zone-row-${idx}`}
               points={[x, y + (idx * h) / 3, x + w, y + (idx * h) / 3]}
-              stroke="#fbbf24"
-              strokeWidth={1}
+              stroke={zoneColor}
+              strokeWidth={1.5}
               dash={[6, 6]}
+              opacity={0.65}
             />
           ))}
+
+          {/* 18 Individual Zone Numbers & Subtle Labels */}
+          {Array.from({ length: 6 }).map((_, c) =>
+            Array.from({ length: 3 }).map((_, r) => {
+              const zoneNum = c * 3 + r + 1;
+              const cellW = w / 6;
+              const cellH = h / 3;
+              const cellX = x + c * cellW;
+              const cellY = y + r * cellH;
+              const isZone14 = zoneNum === 14;
+
+              return (
+                <Group key={`zone-cell-${zoneNum}`}>
+                  {/* Subtle tint for Zone 14 (Golden Playmaker zone) */}
+                  {isZone14 && (
+                    <Rect
+                      x={cellX + 2}
+                      y={cellY + 2}
+                      width={cellW - 4}
+                      height={cellH - 4}
+                      fill={zoneColor}
+                      opacity={0.12}
+                      cornerRadius={4}
+                    />
+                  )}
+                  {/* Zone Number */}
+                  <Text
+                    x={cellX}
+                    y={cellY + cellH * 0.4}
+                    width={cellW}
+                    text={isZone14 ? '14 ★' : `${zoneNum}`}
+                    align="center"
+                    fontSize={Math.max(10, Math.min(18, Math.round(cellW * 0.15)))}
+                    fontStyle="bold"
+                    fill={zoneColor}
+                    opacity={isZone14 ? 0.9 : 0.5}
+                  />
+                </Group>
+              );
+            })
+          )}
         </Group>
       )}
 
