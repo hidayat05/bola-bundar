@@ -277,6 +277,9 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ stageRef }) => {
               <option value="grass" className="bg-slate-900">
                 Grass Turf
               </option>
+              <option value="full-green" className="bg-slate-900">
+                Full Green Grass
+              </option>
               <option value="turf" className="bg-slate-900">
                 Dark Green Turf
               </option>
@@ -485,6 +488,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ stageRef }) => {
                 className="w-full bg-slate-950 border border-slate-800 rounded-lg p-1.5 text-xs text-slate-200 font-medium"
               >
                 <option value="grass">Grass Turf</option>
+                <option value="full-green">Full Green Grass</option>
                 <option value="turf">Dark Green</option>
                 <option value="blue">Futsal Blue</option>
                 <option value="wood">Wood Parquet</option>
