@@ -74,6 +74,8 @@ export interface PitchDimensions {
 
 export interface FormationPreset {
   name: string;
+  category?: string;
+  description?: string;
   pitchType: PitchType;
   playerCount: number; // e.g. 5, 7, 8, 11
   positions: { x: number; y: number; role: string; number: number }[];

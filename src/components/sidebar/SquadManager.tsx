@@ -113,12 +113,18 @@ export const SquadManager: React.FC = () => {
             className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-slate-200 text-xs font-medium focus:outline-none focus:border-emerald-500 cursor-pointer"
           >
             <option value="" disabled>
-              Choose formation...
+              Choose formation / drill...
             </option>
-            {formations.map((f) => (
-              <option key={f.name} value={f.name}>
-                {f.name}
-              </option>
+            {Array.from(new Set(formations.map((f) => f.category || 'Standard'))).map((cat) => (
+              <optgroup key={cat} label={cat} className="bg-slate-900 font-semibold text-emerald-400">
+                {formations
+                  .filter((f) => (f.category || 'Standard') === cat)
+                  .map((f) => (
+                    <option key={f.name} value={f.name} className="bg-slate-900 text-slate-200">
+                      {f.name}
+                    </option>
+                  ))}
+              </optgroup>
             ))}
           </select>
         </div>

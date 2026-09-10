@@ -249,6 +249,7 @@ export const PlayerTokenNode: React.FC<PlayerTokenNodeProps> = ({
         fill={fillColor}
         stroke={strokeColor}
         strokeWidth={player.isGoalkeeper ? 3 : 2}
+        hitStrokeWidth={14}
         shadowColor="#000000"
         shadowBlur={6}
         shadowOpacity={0.4}
@@ -317,15 +318,16 @@ export const PlayerTokenNode: React.FC<PlayerTokenNodeProps> = ({
             dash={[2, 2]}
             listening={false}
           />
-          {/* Drag Knob */}
+          {/* Drag Knob (with large touch hit area for mobile) */}
           <Circle
             ref={handleRef}
             x={handleX}
             y={handleY}
-            radius={7}
+            radius={8}
             fill="#38bdf8"
             stroke="#ffffff"
             strokeWidth={2}
+            hitStrokeWidth={24}
             draggable
             onDragStart={(e) => {
               e.cancelBubble = true;
