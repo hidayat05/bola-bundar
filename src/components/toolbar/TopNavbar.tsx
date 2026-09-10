@@ -210,7 +210,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({ stageRef, onOpe
       <header className="h-14 bg-slate-900 border-b border-slate-800 px-3 sm:px-4 flex items-center justify-between select-none z-30 relative">
         {/* Left: Brand & Sport Type Selector */}
         <div className="flex items-center space-x-2 sm:space-x-3">
-          <Tooltip content="Putar Animasi Intro ⚽" description="Tonton kembali animasi bola berputar dan membesar">
+          <Tooltip content="Putar Animasi Intro ⚽" description="Tonton kembali animasi bola berputar dan membesar" position="bottom">
             <button
               onClick={onReplaySplash}
               className="flex items-center space-x-2 hover:opacity-85 transition-opacity cursor-pointer group"
@@ -483,7 +483,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({ stageRef, onOpe
         {/* Right Controls: Desktop full buttons & Mobile hamburger */}
         <div className="flex items-center space-x-1 sm:space-x-1.5">
           {/* Panduan / Help Tour Button */}
-          <Tooltip content="Panduan Tutorial" description="Buka alur panduan langkah demi langkah interaktif">
+          <Tooltip content="Panduan Tutorial" description="Buka alur panduan langkah demi langkah interaktif" position="bottom">
             <button
               onClick={onOpenTour}
               className="p-1.5 px-2 rounded-lg bg-emerald-500/10 border border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/20 text-xs flex items-center gap-1 font-semibold transition-colors"
@@ -495,7 +495,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({ stageRef, onOpe
           </Tooltip>
 
           {/* Record Video Button */}
-          <Tooltip content={isRecording ? 'Hentikan Rekaman' : 'Rekam Video'} description="Rekam pergerakan taktik ke format video .webm">
+          <Tooltip content={isRecording ? 'Hentikan Rekaman' : 'Rekam Video'} description="Rekam pergerakan taktik ke format video .webm" position="bottom">
             <button
               onClick={handleToggleRecord}
               className={`px-2.5 py-1.5 rounded-lg border text-xs font-semibold flex items-center gap-1.5 transition-all ${
@@ -521,7 +521,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({ stageRef, onOpe
           {/* Desktop Only Buttons */}
           <div data-tour="export-controls" className="hidden md:flex items-center space-x-1.5">
             {/* Snapshot PNG */}
-            <Tooltip content="Ambil Foto PNG" description="Simpan gambar resolusi tinggi papan taktik">
+            <Tooltip content="Ambil Foto PNG" description="Simpan gambar resolusi tinggi papan taktik" position="bottom">
               <button
                 onClick={handleSnapshot}
                 className="p-1.5 px-2 rounded-lg bg-slate-800/80 border border-slate-700 text-slate-300 hover:text-white text-xs flex items-center gap-1 transition-colors"
@@ -532,7 +532,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({ stageRef, onOpe
             </Tooltip>
 
             {/* Export JSON */}
-            <Tooltip content="Ekspor Proyek" description="Simpan file taktik .json ke komputer">
+            <Tooltip content="Ekspor Proyek" description="Simpan file taktik .json ke komputer" position="bottom">
               <button
                 onClick={handleExportJson}
                 className="p-1.5 px-2 rounded-lg bg-slate-800/80 border border-slate-700 text-slate-300 hover:text-white text-xs flex items-center gap-1 transition-colors"
@@ -543,7 +543,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({ stageRef, onOpe
             </Tooltip>
 
             {/* Import JSON */}
-            <Tooltip content="Impor Proyek" description="Buka file taktik .json yang pernah disimpan">
+            <Tooltip content="Impor Proyek" description="Buka file taktik .json yang pernah disimpan" position="bottom">
               <button
                 onClick={() => fileInputRef.current?.click()}
                 className="p-1.5 px-2 rounded-lg bg-slate-800/80 border border-slate-700 text-slate-300 hover:text-white text-xs flex items-center gap-1 transition-colors"
@@ -554,7 +554,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({ stageRef, onOpe
             </Tooltip>
 
             {/* Reset Formation */}
-            <Tooltip content="Reset Lapangan" description="Kembalikan semua pemain ke posisi awal">
+            <Tooltip content="Reset Lapangan" description="Kembalikan semua pemain ke posisi awal" position="bottom">
               <button
                 onClick={resetTactics}
                 className="p-1.5 rounded-lg bg-slate-800/60 border border-slate-700 text-slate-400 hover:text-rose-400 transition-colors"
