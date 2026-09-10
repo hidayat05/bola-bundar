@@ -4,6 +4,8 @@ import Konva from 'konva';
 import { BallToken } from '../../types/tactics';
 import { PitchLayout, normToCanvas, canvasToNorm } from '../../utils/pitchGeometry';
 
+import { useTacticsStore } from '../../store/useTacticsStore';
+
 interface BallNodeProps {
   ball: BallToken;
   layout: PitchLayout;
@@ -17,6 +19,9 @@ export const BallNode: React.FC<BallNodeProps> = ({
   onUpdatePosition,
   setIsDragging,
 }) => {
+  const { activeTool, isPlaying } = useTacticsStore();
+  const isInteractive = activeTool === 'select' && !isPlaying;
+
   const radius = Math.max(7, Math.min(11, layout.pitchRect.width * 0.01));
   const canvasPos = normToCanvas(ball.x, ball.y, false, 'neutral', layout);
 
@@ -36,7 +41,8 @@ export const BallNode: React.FC<BallNodeProps> = ({
     <Group
       x={canvasPos.x}
       y={canvasPos.y}
-      draggable
+      draggable={isInteractive}
+      listening={isInteractive}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >

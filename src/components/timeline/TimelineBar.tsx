@@ -15,6 +15,7 @@ export const TimelineBar: React.FC = () => {
     activeFrameIndex,
     isPlaying,
     playbackSpeed,
+    playbackProgress,
     setActiveFrame,
     addFrame,
     duplicateFrame,
@@ -26,17 +27,46 @@ export const TimelineBar: React.FC = () => {
 
   const currentFrame = frames[activeFrameIndex];
 
+  const handleTogglePlay = () => {
+    if (frames.length <= 1) {
+      // If only 1 frame, automatically create Frame 2 so user can see movement!
+      addFrame();
+      setTimeout(() => {
+        setIsPlaying(true);
+      }, 50);
+      return;
+    }
+    setIsPlaying(!isPlaying);
+  };
+
   return (
-    <div className="h-16 bg-slate-900 border-t border-slate-800 px-4 flex items-center justify-between select-none z-10">
+    <div className="relative h-16 bg-slate-900 border-t border-slate-800 px-3 sm:px-4 flex items-center justify-between select-none z-20">
+      {/* Top Playback Scrubbing Progress Bar */}
+      {isPlaying && (
+        <div className="absolute top-0 left-0 right-0 h-1 bg-slate-800 overflow-hidden">
+          <div
+            className="h-full bg-emerald-500 transition-all duration-75 ease-linear shadow-sm shadow-emerald-500"
+            style={{ width: `${Math.min(100, Math.max(0, playbackProgress * 100))}%` }}
+          />
+        </div>
+      )}
+
       {/* Left: Playback Controls */}
       <div className="flex items-center space-x-2">
         <button
-          onClick={() => setIsPlaying(!isPlaying)}
+          onClick={handleTogglePlay}
           className={`px-3 py-2 rounded-lg font-bold text-xs flex items-center gap-1.5 transition-all ${
             isPlaying
               ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
               : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-600/20'
           }`}
+          title={
+            frames.length <= 1
+              ? 'Click to add Frame 2 and animate'
+              : isPlaying
+              ? 'Pause animation'
+              : 'Play keyframe animation'
+          }
         >
           {isPlaying ? (
             <>
@@ -46,7 +76,7 @@ export const TimelineBar: React.FC = () => {
           ) : (
             <>
               <Play className="w-4 h-4 fill-current" />
-              <span>Play Animation</span>
+              <span>Play</span>
             </>
           )}
         </button>
@@ -69,18 +99,18 @@ export const TimelineBar: React.FC = () => {
         </div>
       </div>
 
-      {/* Center: Keyframe Cards */}
-      <div className="flex-1 flex items-center justify-center space-x-2 px-4 overflow-x-auto">
+      {/* Center: Keyframe Timeline Cards */}
+      <div className="flex-1 flex items-center justify-center space-x-2 px-3 overflow-x-auto">
         <div className="flex items-center space-x-2 py-1">
           {frames.map((frame, index) => {
             const isActive = index === activeFrameIndex;
             return (
               <div
                 key={frame.id}
-                onClick={() => setActiveFrame(index)}
+                onClick={() => !isPlaying && setActiveFrame(index)}
                 className={`group relative flex items-center space-x-2 px-3 py-1.5 rounded-lg border cursor-pointer transition-all ${
                   isActive
-                    ? 'bg-slate-800 border-emerald-500/80 text-white shadow-sm'
+                    ? 'bg-slate-800 border-emerald-500/80 text-white shadow-sm ring-1 ring-emerald-500/30'
                     : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
                 }`}
               >
@@ -99,8 +129,8 @@ export const TimelineBar: React.FC = () => {
                 </span>
 
                 {/* Duplicate / Delete mini buttons */}
-                {isActive && (
-                  <div className="flex items-center space-x-1 pl-1">
+                {isActive && !isPlaying && (
+                  <div className="flex items-center space-x-0.5 pl-1 border-l border-slate-700/60">
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -132,7 +162,8 @@ export const TimelineBar: React.FC = () => {
           {/* Add Frame Button */}
           <button
             onClick={addFrame}
-            className="px-3 py-1.5 rounded-lg border border-dashed border-slate-700 text-slate-400 hover:text-emerald-400 hover:border-emerald-500/50 bg-slate-950/40 text-xs font-semibold flex items-center gap-1.5 transition-all whitespace-nowrap"
+            disabled={isPlaying}
+            className="px-3 py-1.5 rounded-lg border border-dashed border-slate-700 text-slate-400 hover:text-emerald-400 hover:border-emerald-500/50 bg-slate-950/40 text-xs font-semibold flex items-center gap-1.5 transition-all whitespace-nowrap disabled:opacity-50"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>Add Frame</span>
@@ -147,25 +178,26 @@ export const TimelineBar: React.FC = () => {
           <span className="text-[11px]">Transition:</span>
           <select
             value={currentFrame.duration || 1.5}
+            disabled={isPlaying}
             onChange={(e) =>
               updateFrameDuration(activeFrameIndex, parseFloat(e.target.value))
             }
             className="bg-transparent text-slate-200 font-semibold focus:outline-none cursor-pointer"
           >
             <option value={0.5} className="bg-slate-900">
-              0.5s (Fast)
+              0.5s
             </option>
             <option value={1.0} className="bg-slate-900">
-              1.0s (Normal)
+              1.0s
             </option>
             <option value={1.5} className="bg-slate-900">
-              1.5s (Standard)
+              1.5s
             </option>
             <option value={2.0} className="bg-slate-900">
-              2.0s (Smooth)
+              2.0s
             </option>
             <option value={3.0} className="bg-slate-900">
-              3.0s (Slow)
+              3.0s
             </option>
           </select>
         </div>
