@@ -94,11 +94,26 @@ export function useTacticalPlayback() {
         const pB = frameB.players.find((p) => p.id === pA.id);
         if (!pB) return { ...pA };
 
+        const dx = pB.x - pA.x;
+        const dy = pB.y - pA.y;
+        const moveDist = Math.hypot(dx, dy);
+
+        let startRot = pA.rotation;
+        let endRot = pB.rotation;
+
+        // If player moved across the pitch and rotation wasn't manually changed,
+        // orient token facing their sprint direction for realistic running visuals!
+        if (moveDist > 2.5 && pA.rotation === pB.rotation) {
+          const runAngle = ((Math.atan2(dy, dx) * 180) / Math.PI + 360) % 360;
+          startRot = runAngle;
+          endRot = runAngle;
+        }
+
         return {
           ...pA,
-          x: pA.x + (pB.x - pA.x) * easedT,
-          y: pA.y + (pB.y - pA.y) * easedT,
-          rotation: interpolateAngle(pA.rotation, pB.rotation, easedT),
+          x: pA.x + dx * easedT,
+          y: pA.y + dy * easedT,
+          rotation: interpolateAngle(startRot, endRot, easedT),
           isBench: rawProgress > 0.5 ? pB.isBench : pA.isBench,
         };
       });
