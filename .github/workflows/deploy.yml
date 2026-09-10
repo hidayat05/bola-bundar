@@ -2,6 +2,8 @@ name: Deploy Tactical Board on Release Tag
 
 on:
   push:
+    branches:
+      - main
     tags:
       - 'v*' # Triggers on release tags like v1.0.0, v1.0.1, etc.
   workflow_dispatch: # Allows manual deploy trigger from GitHub Actions
