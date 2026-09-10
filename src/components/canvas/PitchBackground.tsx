@@ -12,6 +12,8 @@ interface PitchBackgroundProps {
   showZones: boolean;
   homeTeamName: string;
   awayTeamName: string;
+  teamDisplayMode?: 'both' | 'single';
+  soloTeamSide?: 'home' | 'away';
 }
 
 export const PitchBackground: React.FC<PitchBackgroundProps> = ({
@@ -23,6 +25,8 @@ export const PitchBackground: React.FC<PitchBackgroundProps> = ({
   showZones,
   homeTeamName,
   awayTeamName,
+  teamDisplayMode = 'both',
+  soloTeamSide = 'home',
 }) => {
   const { pitchRect, benchRectHome, benchRectAway } = layout;
   const { x, y, width: w, height: h } = pitchRect;
@@ -425,50 +429,54 @@ export const PitchBackground: React.FC<PitchBackgroundProps> = ({
 
       {/* Sideline Bench Areas */}
       {/* Home Bench */}
-      <Group>
-        <Rect
-          x={benchRectHome.x}
-          y={benchRectHome.y}
-          width={benchRectHome.width}
-          height={benchRectHome.height}
-          fill="rgba(15, 23, 42, 0.75)"
-          stroke="rgba(239, 68, 68, 0.4)"
-          strokeWidth={1.5}
-          cornerRadius={8}
-        />
-        <Text
-          x={benchRectHome.x + 12}
-          y={benchRectHome.y + 6}
-          text={`${homeTeamName} Dugout (Bench)`}
-          fontSize={11}
-          fontFamily="system-ui, sans-serif"
-          fontStyle="bold"
-          fill="rgba(252, 165, 165, 0.9)"
-        />
-      </Group>
+      {(teamDisplayMode === 'both' || soloTeamSide === 'home') && (
+        <Group>
+          <Rect
+            x={benchRectHome.x}
+            y={benchRectHome.y}
+            width={teamDisplayMode === 'single' ? pitchRect.width : benchRectHome.width}
+            height={benchRectHome.height}
+            fill="rgba(15, 23, 42, 0.75)"
+            stroke="rgba(239, 68, 68, 0.4)"
+            strokeWidth={1.5}
+            cornerRadius={8}
+          />
+          <Text
+            x={benchRectHome.x + 12}
+            y={benchRectHome.y + 6}
+            text={`${homeTeamName} Dugout (Bench)`}
+            fontSize={11}
+            fontFamily="system-ui, sans-serif"
+            fontStyle="bold"
+            fill="rgba(252, 165, 165, 0.9)"
+          />
+        </Group>
+      )}
 
       {/* Away Bench */}
-      <Group>
-        <Rect
-          x={benchRectAway.x}
-          y={benchRectAway.y}
-          width={benchRectAway.width}
-          height={benchRectAway.height}
-          fill="rgba(15, 23, 42, 0.75)"
-          stroke="rgba(59, 130, 246, 0.4)"
-          strokeWidth={1.5}
-          cornerRadius={8}
-        />
-        <Text
-          x={benchRectAway.x + 12}
-          y={benchRectAway.y + 6}
-          text={`${awayTeamName} Dugout (Bench)`}
-          fontSize={11}
-          fontFamily="system-ui, sans-serif"
-          fontStyle="bold"
-          fill="rgba(147, 197, 253, 0.9)"
-        />
-      </Group>
+      {(teamDisplayMode === 'both' || soloTeamSide === 'away') && (
+        <Group>
+          <Rect
+            x={teamDisplayMode === 'single' ? benchRectHome.x : benchRectAway.x}
+            y={benchRectAway.y}
+            width={teamDisplayMode === 'single' ? pitchRect.width : benchRectAway.width}
+            height={benchRectAway.height}
+            fill="rgba(15, 23, 42, 0.75)"
+            stroke="rgba(59, 130, 246, 0.4)"
+            strokeWidth={1.5}
+            cornerRadius={8}
+          />
+          <Text
+            x={(teamDisplayMode === 'single' ? benchRectHome.x : benchRectAway.x) + 12}
+            y={benchRectAway.y + 6}
+            text={`${awayTeamName} Dugout (Bench)`}
+            fontSize={11}
+            fontFamily="system-ui, sans-serif"
+            fontStyle="bold"
+            fill="rgba(147, 197, 253, 0.9)"
+          />
+        </Group>
+      )}
     </Group>
   );
 };

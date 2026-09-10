@@ -26,6 +26,9 @@ export const SquadManager: React.FC = () => {
     updateHomeTeam,
     updateAwayTeam,
     toggleBenchPlayer,
+    teamDisplayMode,
+    soloTeamSide,
+    setSoloTeamSide,
   } = useTacticsStore();
 
   const currentFrame = frames[activeFrameIndex];
@@ -50,11 +53,17 @@ export const SquadManager: React.FC = () => {
       {/* Team Tabs & Scoreboard Counter */}
       <div className="p-3 border-b border-slate-800 space-y-2">
         <div className="flex items-center justify-between text-[11px] text-slate-400 font-semibold mb-1">
-          <span>SQUAD SIZE (MATCHUP)</span>
-          <span className="bg-slate-800 px-2 py-0.5 rounded text-slate-200 font-mono">
-            {homeCount} vs {awayCount}
-            {homeCount !== awayCount && (
-              <span className="text-amber-400 text-[10px] ml-1.5 font-sans">(Asymmetrical)</span>
+          <span>{teamDisplayMode === 'single' ? 'SOLO TEAM (1 TIM)' : 'SQUAD SIZE (MATCHUP)'}</span>
+          <span className="bg-slate-950 px-2 py-0.5 rounded text-slate-200 font-mono border border-slate-800">
+            {teamDisplayMode === 'single' ? (
+              <span className="text-emerald-400 font-semibold">{activePitchPlayers.length} di Lapangan</span>
+            ) : (
+              <>
+                {homeCount} vs {awayCount}
+                {homeCount !== awayCount && (
+                  <span className="text-amber-400 text-[10px] ml-1.5 font-sans">(Asymmetrical)</span>
+                )}
+              </>
             )}
           </span>
         </div>
@@ -62,7 +71,10 @@ export const SquadManager: React.FC = () => {
         {/* Home / Away Tabs */}
         <div className="grid grid-cols-2 gap-1.5 p-1 bg-slate-950 rounded-lg border border-slate-800">
           <button
-            onClick={() => setActiveTab('home')}
+            onClick={() => {
+              setActiveTab('home');
+              if (teamDisplayMode === 'single') setSoloTeamSide('home');
+            }}
             className={`py-1.5 px-3 rounded-md font-semibold flex items-center justify-center gap-2 transition-all ${
               activeTab === 'home'
                 ? 'bg-red-500/20 text-red-300 border border-red-500/40'
@@ -74,11 +86,14 @@ export const SquadManager: React.FC = () => {
               style={{ backgroundColor: homeTeam.primaryColor }}
             />
             <span className="truncate">{homeTeam.name}</span>
-            <span className="text-[10px] opacity-75 font-mono">({activePitchPlayers.length})</span>
+            <span className="text-[10px] opacity-75 font-mono">({homeCount})</span>
           </button>
 
           <button
-            onClick={() => setActiveTab('away')}
+            onClick={() => {
+              setActiveTab('away');
+              if (teamDisplayMode === 'single') setSoloTeamSide('away');
+            }}
             className={`py-1.5 px-3 rounded-md font-semibold flex items-center justify-center gap-2 transition-all ${
               activeTab === 'away'
                 ? 'bg-blue-500/20 text-blue-300 border border-blue-500/40'
@@ -90,11 +105,21 @@ export const SquadManager: React.FC = () => {
               style={{ backgroundColor: awayTeam.primaryColor }}
             />
             <span className="truncate">{awayTeam.name}</span>
-            <span className="text-[10px] opacity-75 font-mono">
-              ({currentFrame.players.filter((p) => p.team === 'away' && !p.isBench).length})
-            </span>
+            <span className="text-[10px] opacity-75 font-mono">({awayCount})</span>
           </button>
         </div>
+
+        {/* Solo Team Banner */}
+        {teamDisplayMode === 'single' && (
+          <div className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 px-2.5 py-1.5 rounded-lg text-[11px] flex items-center justify-between">
+            <span>
+              Mode 1 Tim: <strong>{soloTeamSide === 'home' ? homeTeam.name : awayTeam.name}</strong>
+            </span>
+            <span className="text-[10px] bg-emerald-500/20 px-1.5 py-0.5 rounded font-mono">
+              Tanpa Lawan
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Formation Selector & Team Settings Toggle */}
