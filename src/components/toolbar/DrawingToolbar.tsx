@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { useTacticsStore } from '../../store/useTacticsStore';
 import { ActiveTool } from '../../types/tactics';
+import { Tooltip } from '../ui/Tooltip';
 
 export const DrawingToolbar: React.FC = () => {
   const {
@@ -25,13 +26,48 @@ export const DrawingToolbar: React.FC = () => {
   const currentFrame = frames[activeFrameIndex];
   const drawingCount = currentFrame?.drawings?.length || 0;
 
-  const tools: { id: ActiveTool; label: string; icon: React.FC<{ className?: string }> }[] = [
-    { id: 'select', label: 'Select & Move', icon: MousePointer },
-    { id: 'pass', label: 'Passing Arrow (Solid)', icon: ArrowRight },
-    { id: 'run', label: 'Player Run (Dashed)', icon: MoveRight },
-    { id: 'dribble', label: 'Dribbling (Wavy)', icon: Spline },
-    { id: 'zone', label: 'Tactical Zone', icon: Square },
-    { id: 'eraser', label: 'Eraser', icon: Eraser },
+  const tools: {
+    id: ActiveTool;
+    label: string;
+    description: string;
+    icon: React.FC<{ className?: string }>;
+  }[] = [
+    {
+      id: 'select',
+      label: 'Pilih & Geser',
+      description: 'Pindahkan token pemain/bola & putar arah hadap',
+      icon: MousePointer,
+    },
+    {
+      id: 'pass',
+      label: 'Panah Operan',
+      description: 'Garis panah solid penunjuk arah operan bola',
+      icon: ArrowRight,
+    },
+    {
+      id: 'run',
+      label: 'Jalur Lari (Sprint)',
+      description: 'Garis putus-putus pergerakan pemain tanpa bola',
+      icon: MoveRight,
+    },
+    {
+      id: 'dribble',
+      label: 'Dribbling',
+      description: 'Garis gelombang gerakan liukan menggiring bola',
+      icon: Spline,
+    },
+    {
+      id: 'zone',
+      label: 'Area Taktis',
+      description: 'Blok persegi penanda zona strategi penting',
+      icon: Square,
+    },
+    {
+      id: 'eraser',
+      label: 'Penghapus',
+      description: 'Klik anotasi gambar untuk menghapusnya',
+      icon: Eraser,
+    },
   ];
 
   const colors = [
@@ -51,18 +87,23 @@ export const DrawingToolbar: React.FC = () => {
           const Icon = t.icon;
           const isActive = activeTool === t.id;
           return (
-            <button
+            <Tooltip
               key={t.id}
-              onClick={() => setActiveTool(t.id)}
-              className={`p-2 rounded-lg text-xs flex items-center justify-center transition-all ${
-                isActive
-                  ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30 font-bold scale-105'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
-              }`}
-              title={t.label}
+              content={t.label}
+              description={t.description}
+              position="bottom"
             >
-              <Icon className="w-4 h-4" />
-            </button>
+              <button
+                onClick={() => setActiveTool(t.id)}
+                className={`p-2 rounded-lg text-xs flex items-center justify-center transition-all ${
+                  isActive
+                    ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30 font-bold scale-105'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+                }`}
+              >
+                <Icon className="w-4 h-4" />
+              </button>
+            </Tooltip>
           );
         })}
       </div>
@@ -71,31 +112,36 @@ export const DrawingToolbar: React.FC = () => {
       {activeTool !== 'select' && activeTool !== 'eraser' && (
         <div className="flex items-center space-x-1.5 px-1.5 pr-2 border-r border-slate-700/70">
           {colors.map((c) => (
-            <button
-              key={c.color}
-              onClick={() => setActiveDrawingColor(c.color)}
-              className={`w-5 h-5 rounded-full transition-transform ${
-                activeDrawingColor === c.color
-                  ? 'ring-2 ring-white ring-offset-2 ring-offset-slate-900 scale-110'
-                  : 'opacity-70 hover:opacity-100 hover:scale-105'
-              }`}
-              style={{ backgroundColor: c.color }}
-              title={c.name}
-            />
+            <Tooltip key={c.color} content={c.name} position="bottom">
+              <button
+                onClick={() => setActiveDrawingColor(c.color)}
+                className={`w-5 h-5 rounded-full transition-transform ${
+                  activeDrawingColor === c.color
+                    ? 'ring-2 ring-white ring-offset-2 ring-offset-slate-900 scale-110'
+                    : 'opacity-70 hover:opacity-100 hover:scale-105'
+                }`}
+                style={{ backgroundColor: c.color }}
+              />
+            </Tooltip>
           ))}
         </div>
       )}
 
       {/* Clear Current Frame Drawings */}
       {drawingCount > 0 && (
-        <button
-          onClick={clearDrawings}
-          className="p-1.5 px-2 rounded-lg text-[11px] font-semibold text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 flex items-center gap-1 transition-colors"
-          title="Clear all drawings in this frame"
+        <Tooltip
+          content="Hapus Semua Gambar"
+          description={`Menghapus ${drawingCount} gambar di frame ini`}
+          position="bottom"
         >
-          <Trash className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">Clear ({drawingCount})</span>
-        </button>
+          <button
+            onClick={clearDrawings}
+            className="p-1.5 px-2 rounded-lg text-[11px] font-semibold text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 flex items-center gap-1 transition-colors"
+          >
+            <Trash className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Clear ({drawingCount})</span>
+          </button>
+        </Tooltip>
       )}
     </div>
   );
