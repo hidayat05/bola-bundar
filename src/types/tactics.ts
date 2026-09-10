@@ -3,6 +3,7 @@ export type PitchView = 'full' | 'half';
 export type PitchSurface = 'grass' | 'full-green' | 'turf' | 'wood' | 'blue';
 export type TeamSide = 'home' | 'away' | 'neutral';
 export type TeamDisplayMode = 'both' | 'single';
+export type TokenStyle = 'jersey' | 'circle';
 
 export interface PlayerToken {
   id: string;

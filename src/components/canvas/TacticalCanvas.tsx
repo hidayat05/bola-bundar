@@ -9,6 +9,11 @@ import { BallNode } from './BallNode';
 import { DrawingLayer } from './DrawingLayer';
 import { DrawingToolbar } from '../toolbar/DrawingToolbar';
 
+// High-DPI canvas rendering capped at 2 for optimal Retina clarity and 60 FPS mobile performance
+if (typeof window !== 'undefined') {
+  Konva.pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+}
+
 interface TacticalCanvasProps {
   stageRef?: React.RefObject<Konva.Stage>;
 }

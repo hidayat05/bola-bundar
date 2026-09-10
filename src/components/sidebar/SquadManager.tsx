@@ -4,12 +4,15 @@ import {
   Plus,
   Armchair,
   Settings2,
+  Shirt,
+  Circle,
 } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import { useTacticsStore } from '../../store/useTacticsStore';
 import { TeamSide } from '../../types/tactics';
 import { getFormationsForPitch } from '../../utils/formations';
 import { Tooltip } from '../ui/Tooltip';
+import { getContrastingTextColor } from '../../utils/jersey3dTexture';
 
 export const SquadManager: React.FC = React.memo(() => {
   const [activeTab, setActiveTab] = useState<TeamSide>('home');
@@ -31,6 +34,8 @@ export const SquadManager: React.FC = React.memo(() => {
     teamDisplayMode,
     soloTeamSide,
     setSoloTeamSide,
+    tokenStyle,
+    setTokenStyle,
   } = useTacticsStore(
     useShallow((s) => ({
       pitchType: s.pitchType,
@@ -48,6 +53,8 @@ export const SquadManager: React.FC = React.memo(() => {
       teamDisplayMode: s.teamDisplayMode,
       soloTeamSide: s.soloTeamSide,
       setSoloTeamSide: s.setSoloTeamSide,
+      tokenStyle: s.tokenStyle,
+      setTokenStyle: s.setTokenStyle,
     }))
   );
 
@@ -238,6 +245,38 @@ export const SquadManager: React.FC = React.memo(() => {
               </div>
             </div>
           </div>
+
+          <div>
+            <label className="text-[10px] uppercase tracking-wider text-slate-400 block mb-1">
+              Bentuk Pemain di Lapangan
+            </label>
+            <div className="grid grid-cols-2 gap-1.5 bg-slate-900/80 p-1 rounded-lg border border-slate-700 text-xs">
+              <button
+                type="button"
+                onClick={() => setTokenStyle('jersey')}
+                className={`py-1 px-2 rounded font-medium flex items-center justify-center gap-1 transition-all ${
+                  tokenStyle === 'jersey'
+                    ? 'bg-indigo-600 text-white font-bold shadow'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <Shirt className="w-3.5 h-3.5" />
+                <span>Jersey Kit</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setTokenStyle('circle')}
+                className={`py-1 px-2 rounded font-medium flex items-center justify-center gap-1 transition-all ${
+                  tokenStyle === 'circle'
+                    ? 'bg-slate-700 text-white font-bold shadow'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <Circle className="w-3.5 h-3.5" />
+                <span>Bulatan Klasik</span>
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -272,18 +311,24 @@ export const SquadManager: React.FC = React.memo(() => {
                 }`}
               >
                 <div className="flex items-center space-x-2.5">
-                  <div
-                    className="w-5 h-5 rounded-full flex items-center justify-center font-bold text-[10px] text-white shadow-sm"
-                    style={{
-                      backgroundColor:
-                        player.customColor ||
-                        (player.isGoalkeeper
-                          ? currentTeamConfig.goalkeeperColor
-                          : currentTeamConfig.primaryColor),
-                    }}
-                  >
-                    {player.number}
-                  </div>
+                  {(() => {
+                    const badgeBg =
+                      player.customColor ||
+                      (player.isGoalkeeper
+                        ? currentTeamConfig.goalkeeperColor
+                        : currentTeamConfig.primaryColor);
+                    return (
+                      <div
+                        className="w-5 h-5 rounded-full flex items-center justify-center font-bold text-[10px] shadow-sm"
+                        style={{
+                          backgroundColor: badgeBg,
+                          color: getContrastingTextColor(badgeBg),
+                        }}
+                      >
+                        {player.number}
+                      </div>
+                    );
+                  })()}
                   <div>
                     <span className="font-semibold text-xs text-slate-100">{player.name}</span>
                     {player.role && (
@@ -344,15 +389,20 @@ export const SquadManager: React.FC = React.memo(() => {
                   }`}
                 >
                   <div className="flex items-center space-x-2.5">
-                    <div
-                      className="w-5 h-5 rounded-full flex items-center justify-center font-bold text-[10px] text-white opacity-80"
-                      style={{
-                        backgroundColor:
-                          player.customColor || currentTeamConfig.primaryColor,
-                      }}
-                    >
-                      {player.number}
-                    </div>
+                    {(() => {
+                      const badgeBg = player.customColor || currentTeamConfig.primaryColor;
+                      return (
+                        <div
+                          className="w-5 h-5 rounded-full flex items-center justify-center font-bold text-[10px] opacity-90"
+                          style={{
+                            backgroundColor: badgeBg,
+                            color: getContrastingTextColor(badgeBg),
+                          }}
+                        >
+                          {player.number}
+                        </div>
+                      );
+                    })()}
                     <span className="font-medium text-xs text-slate-200">{player.name}</span>
                   </div>
 

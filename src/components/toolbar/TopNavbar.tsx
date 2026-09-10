@@ -17,6 +17,8 @@ import {
   Palette,
   ChevronDown,
   HelpCircle,
+  Shirt,
+  Circle,
 } from 'lucide-react';
 
 const ZONE_COLORS = [
@@ -57,6 +59,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({ stageRef, onOpe
     zoneColor,
     teamDisplayMode,
     soloTeamSide,
+    tokenStyle,
     homeTeam,
     awayTeam,
     frames,
@@ -70,6 +73,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({ stageRef, onOpe
     setZoneColor,
     setTeamDisplayMode,
     setSoloTeamSide,
+    setTokenStyle,
     resetTactics,
     setIsRecording,
     setIsPlaying,
@@ -84,6 +88,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({ stageRef, onOpe
       zoneColor: s.zoneColor,
       teamDisplayMode: s.teamDisplayMode,
       soloTeamSide: s.soloTeamSide,
+      tokenStyle: s.tokenStyle,
       homeTeam: s.homeTeam,
       awayTeam: s.awayTeam,
       frames: s.frames,
@@ -97,6 +102,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({ stageRef, onOpe
       setZoneColor: s.setZoneColor,
       setTeamDisplayMode: s.setTeamDisplayMode,
       setSoloTeamSide: s.setSoloTeamSide,
+      setTokenStyle: s.setTokenStyle,
       resetTactics: s.resetTactics,
       setIsRecording: s.setIsRecording,
       setIsPlaying: s.setIsPlaying,
@@ -360,6 +366,34 @@ export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({ stageRef, onOpe
               <span className="hidden sm:inline">{soloTeamSide === 'home' ? 'Home' : 'Away'}</span>
             </button>
           )}
+        </div>
+
+        {/* Token Style: Jersey vs Circle (Desktop) */}
+        <div className="bg-slate-950 p-0.5 rounded-lg border border-slate-800 hidden md:flex text-xs shrink-0 items-center">
+          <button
+            onClick={() => setTokenStyle('jersey')}
+            className={`px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-md font-medium text-xs flex items-center gap-1 transition-all ${
+              tokenStyle === 'jersey'
+                ? 'bg-indigo-600 text-white shadow-sm font-bold ring-1 ring-indigo-400/50'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+            title="Bentuk Pemain: Jersey Kit"
+          >
+            <Shirt className="w-3.5 h-3.5" />
+            <span className="hidden lg:inline">Jersey</span>
+          </button>
+          <button
+            onClick={() => setTokenStyle('circle')}
+            className={`px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-md font-medium text-xs flex items-center gap-1 transition-all ${
+              tokenStyle === 'circle'
+                ? 'bg-slate-800 text-slate-100 shadow-sm font-semibold'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+            title="Bentuk Pemain: Bulat Klasik"
+          >
+            <Circle className="w-3.5 h-3.5" />
+            <span className="hidden lg:inline">Bulat</span>
+          </button>
         </div>
 
         {/* Center Controls (Desktop & Large Screen Only): View & Pitch Overlays */}
@@ -681,6 +715,39 @@ export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({ stageRef, onOpe
               >
                 <User className="w-3.5 h-3.5" />
                 <span>Hanya 1 Tim (Solo)</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Token Style: Jersey vs Bulat */}
+          <div>
+            <label className="text-[10px] uppercase font-bold text-slate-400 block mb-1">
+              Bentuk Pemain (Jersey vs Bulat)
+            </label>
+            <div className="grid grid-cols-2 gap-1.5 bg-slate-950 p-1 rounded-lg border border-slate-800 text-xs">
+              <button
+                onClick={() => {
+                  setTokenStyle('jersey');
+                  setMobileMenuOpen(false);
+                }}
+                className={`py-1.5 px-2 rounded-md font-medium flex items-center justify-center gap-1.5 transition-all ${
+                  tokenStyle === 'jersey' ? 'bg-indigo-600 text-white font-bold' : 'text-slate-400'
+                }`}
+              >
+                <Shirt className="w-3.5 h-3.5" />
+                <span>Jersey Kit 👕</span>
+              </button>
+              <button
+                onClick={() => {
+                  setTokenStyle('circle');
+                  setMobileMenuOpen(false);
+                }}
+                className={`py-1.5 px-2 rounded-md font-medium flex items-center justify-center gap-1.5 transition-all ${
+                  tokenStyle === 'circle' ? 'bg-slate-800 text-white font-bold' : 'text-slate-400'
+                }`}
+              >
+                <Circle className="w-3.5 h-3.5" />
+                <span>Bulatan Klasik ⚪</span>
               </button>
             </div>
           </div>

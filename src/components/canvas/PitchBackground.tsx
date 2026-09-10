@@ -494,13 +494,17 @@ export const PitchBackground: React.FC<PitchBackgroundProps> = React.memo(({
             cornerRadius={8}
           />
           <Text
-            x={benchRectHome.x + 12}
-            y={benchRectHome.y + 6}
+            x={benchRectHome.x}
+            y={benchRectHome.y + (benchRectHome.height < 30 ? 4 : 6)}
+            width={teamDisplayMode === 'single' ? pitchRect.width : benchRectHome.width}
             text={`${homeTeamName} Dugout (Bench)`}
-            fontSize={11}
+            fontSize={benchRectHome.height < 30 ? 9.5 : 11}
             fontFamily="system-ui, sans-serif"
             fontStyle="bold"
-            fill="rgba(252, 165, 165, 0.9)"
+            align="center"
+            fill="rgba(252, 165, 165, 0.95)"
+            ellipsis={true}
+            wrap="none"
           />
         </Group>
       )}
@@ -519,13 +523,17 @@ export const PitchBackground: React.FC<PitchBackgroundProps> = React.memo(({
             cornerRadius={8}
           />
           <Text
-            x={(teamDisplayMode === 'single' ? benchRectHome.x : benchRectAway.x) + 12}
-            y={benchRectAway.y + 6}
+            x={teamDisplayMode === 'single' ? benchRectHome.x : benchRectAway.x}
+            y={benchRectAway.y + (benchRectAway.height < 30 ? 4 : 6)}
+            width={teamDisplayMode === 'single' ? pitchRect.width : benchRectAway.width}
             text={`${awayTeamName} Dugout (Bench)`}
-            fontSize={11}
+            fontSize={benchRectAway.height < 30 ? 9.5 : 11}
             fontFamily="system-ui, sans-serif"
             fontStyle="bold"
-            fill="rgba(147, 197, 253, 0.9)"
+            align="center"
+            fill="rgba(147, 197, 253, 0.95)"
+            ellipsis={true}
+            wrap="none"
           />
         </Group>
       )}

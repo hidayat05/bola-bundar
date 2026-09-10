@@ -12,6 +12,7 @@ import {
   TeamConfig,
   TeamDisplayMode,
   TeamSide,
+  TokenStyle,
 } from '../types/tactics';
 import { generateInitialSquad, getFormationsForPitch } from '../utils/formations';
 
@@ -25,6 +26,7 @@ interface TacticsState {
   showTooltips: boolean;
   teamDisplayMode: TeamDisplayMode; // 'both' | 'single'
   soloTeamSide: 'home' | 'away';
+  tokenStyle: TokenStyle; // 'jersey' | 'circle'
 
   homeTeam: TeamConfig;
   awayTeam: TeamConfig;
@@ -49,6 +51,7 @@ interface TacticsState {
   setShowTooltips: (show: boolean) => void;
   setTeamDisplayMode: (mode: TeamDisplayMode) => void;
   setSoloTeamSide: (side: 'home' | 'away') => void;
+  setTokenStyle: (style: TokenStyle) => void;
 
   // Teams
   updateHomeTeam: (updates: Partial<TeamConfig>) => void;
@@ -147,6 +150,7 @@ export const useTacticsStore = create<TacticsState>((set, get) => {
     showTooltips: typeof window !== 'undefined' ? localStorage.getItem('bola_bundar_tooltips') !== 'false' : true,
     teamDisplayMode: 'both',
     soloTeamSide: 'home',
+    tokenStyle: (typeof window !== 'undefined' && localStorage.getItem('bola_bundar_token_style') === 'circle') ? 'circle' : 'jersey',
 
     homeTeam: DEFAULT_HOME_TEAM,
     awayTeam: DEFAULT_AWAY_TEAM,
@@ -193,6 +197,12 @@ export const useTacticsStore = create<TacticsState>((set, get) => {
     },
     setTeamDisplayMode: (teamDisplayMode: TeamDisplayMode) => set({ teamDisplayMode }),
     setSoloTeamSide: (soloTeamSide: 'home' | 'away') => set({ soloTeamSide }),
+    setTokenStyle: (tokenStyle: TokenStyle) => {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('bola_bundar_token_style', tokenStyle);
+      }
+      set({ tokenStyle });
+    },
 
     updateHomeTeam: (updates: Partial<TeamConfig>) =>
       set((state) => ({ homeTeam: { ...state.homeTeam, ...updates } })),
