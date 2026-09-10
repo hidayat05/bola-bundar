@@ -22,6 +22,7 @@ interface TacticsState {
   showGrid: boolean;
   showZones: boolean;
   zoneColor: string;
+  showTooltips: boolean;
   teamDisplayMode: TeamDisplayMode; // 'both' | 'single'
   soloTeamSide: 'home' | 'away';
 
@@ -45,6 +46,7 @@ interface TacticsState {
   setShowGrid: (show: boolean) => void;
   setShowZones: (show: boolean) => void;
   setZoneColor: (color: string) => void;
+  setShowTooltips: (show: boolean) => void;
   setTeamDisplayMode: (mode: TeamDisplayMode) => void;
   setSoloTeamSide: (side: 'home' | 'away') => void;
 
@@ -142,6 +144,7 @@ export const useTacticsStore = create<TacticsState>((set, get) => {
     showGrid: false,
     showZones: false,
     zoneColor: '#fbbf24',
+    showTooltips: typeof window !== 'undefined' ? localStorage.getItem('bola_bundar_tooltips') !== 'false' : true,
     teamDisplayMode: 'both',
     soloTeamSide: 'home',
 
@@ -182,6 +185,12 @@ export const useTacticsStore = create<TacticsState>((set, get) => {
     setShowGrid: (showGrid: boolean) => set({ showGrid }),
     setShowZones: (showZones: boolean) => set({ showZones }),
     setZoneColor: (zoneColor: string) => set({ zoneColor }),
+    setShowTooltips: (showTooltips: boolean) => {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('bola_bundar_tooltips', showTooltips ? 'true' : 'false');
+      }
+      set({ showTooltips });
+    },
     setTeamDisplayMode: (teamDisplayMode: TeamDisplayMode) => set({ teamDisplayMode }),
     setSoloTeamSide: (soloTeamSide: 'home' | 'away') => set({ soloTeamSide }),
 

@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import { useTacticsStore } from '../../store/useTacticsStore';
+import { Tooltip } from '../ui/Tooltip';
 
 export const PlayerInspector: React.FC = React.memo(() => {
   const {
@@ -218,19 +219,25 @@ export const PlayerInspector: React.FC = React.memo(() => {
         <label className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold block">
           Position Status
         </label>
-        <button
-          onClick={() => toggleBenchPlayer(selectedPlayer.id)}
-          className={`w-full py-2 px-3 rounded-lg border flex items-center justify-center gap-2 font-medium transition-colors ${
-            selectedPlayer.isBench
-              ? 'bg-amber-500/15 border-amber-500/40 text-amber-300'
-              : 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300'
-          }`}
+        <Tooltip
+          title={selectedPlayer.isBench ? 'Masukkan ke Lapangan' : 'Pindahkan ke Cadangan'}
+          description={selectedPlayer.isBench ? 'Tempatkan pemain di tengah lapangan' : 'Pindahkan ke bangku cadangan pinggir lapangan'}
+          position="left"
         >
-          <Armchair className="w-4 h-4" />
-          <span>
-            {selectedPlayer.isBench ? 'Bench Substitute (Sideline)' : 'Active on Pitch'}
-          </span>
-        </button>
+          <button
+            onClick={() => toggleBenchPlayer(selectedPlayer.id)}
+            className={`w-full py-2 px-3 rounded-lg border flex items-center justify-center gap-2 font-medium transition-colors ${
+              selectedPlayer.isBench
+                ? 'bg-amber-500/15 border-amber-500/40 text-amber-300'
+                : 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300'
+            }`}
+          >
+            <Armchair className="w-4 h-4" />
+            <span>
+              {selectedPlayer.isBench ? 'Bench Substitute (Sideline)' : 'Active on Pitch'}
+            </span>
+          </button>
+        </Tooltip>
       </div>
 
       {/* Custom Token Color Override */}
@@ -263,13 +270,15 @@ export const PlayerInspector: React.FC = React.memo(() => {
 
       {/* Delete Player */}
       <div className="pt-2 border-t border-slate-800">
-        <button
-          onClick={() => removePlayer(selectedPlayer.id)}
-          className="w-full py-1.5 px-3 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-400 flex items-center justify-center gap-1.5 font-medium transition-colors"
-        >
-          <Trash2 className="w-3.5 h-3.5" />
-          <span>Remove Player</span>
-        </button>
+        <Tooltip title="Hapus Pemain" description="Hapus pemain ini dari skuad di seluruh frame" position="left">
+          <button
+            onClick={() => removePlayer(selectedPlayer.id)}
+            className="w-full py-1.5 px-3 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-400 flex items-center justify-center gap-1.5 font-medium transition-colors"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            <span>Remove Player</span>
+          </button>
+        </Tooltip>
       </div>
     </div>
   );

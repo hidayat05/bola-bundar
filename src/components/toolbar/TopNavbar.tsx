@@ -16,6 +16,7 @@ import {
   User,
   Palette,
   ChevronDown,
+  HelpCircle,
 } from 'lucide-react';
 
 const ZONE_COLORS = [
@@ -38,12 +39,14 @@ import {
   parseTacticsJson,
   CanvasVideoRecorder,
 } from '../../utils/exportUtils';
+import { Tooltip } from '../ui/Tooltip';
 
 interface TopNavbarProps {
   stageRef: React.RefObject<Konva.Stage>;
+  onOpenTour?: () => void;
 }
 
-export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({ stageRef }) => {
+export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({ stageRef, onOpenTour }) => {
   const {
     pitchType,
     pitchView,
@@ -470,69 +473,86 @@ export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({ stageRef }) => 
 
         {/* Right Controls: Desktop full buttons & Mobile hamburger */}
         <div className="flex items-center space-x-1 sm:space-x-1.5">
-          {/* Record Video Button (always visible for easy recording) */}
-          <button
-            onClick={handleToggleRecord}
-            className={`px-2.5 py-1.5 rounded-lg border text-xs font-semibold flex items-center gap-1.5 transition-all ${
-              isRecording
-                ? 'bg-rose-600 border-rose-500 text-white animate-pulse shadow-lg shadow-rose-600/30'
-                : 'bg-slate-800/80 border-slate-700 text-rose-400 hover:bg-rose-500/10 hover:border-rose-500/40'
-            }`}
-            title={isRecording ? 'Stop Recording' : 'Record Video'}
-          >
-            {isRecording ? (
-              <>
-                <Square className="w-3.5 h-3.5 fill-current" />
-                <span>{recordDuration}s</span>
-              </>
-            ) : (
-              <>
-                <Video className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Record</span>
-              </>
-            )}
-          </button>
+          {/* Panduan / Help Tour Button */}
+          <Tooltip content="Panduan Tutorial" description="Buka alur panduan langkah demi langkah interaktif">
+            <button
+              onClick={onOpenTour}
+              className="p-1.5 px-2 rounded-lg bg-emerald-500/10 border border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/20 text-xs flex items-center gap-1 font-semibold transition-colors"
+              title="Buka Panduan Tutorial"
+            >
+              <HelpCircle className="w-3.5 h-3.5" />
+              <span className="hidden xl:inline">Panduan</span>
+            </button>
+          </Tooltip>
+
+          {/* Record Video Button */}
+          <Tooltip content={isRecording ? 'Hentikan Rekaman' : 'Rekam Video'} description="Rekam pergerakan taktik ke format video .webm">
+            <button
+              onClick={handleToggleRecord}
+              className={`px-2.5 py-1.5 rounded-lg border text-xs font-semibold flex items-center gap-1.5 transition-all ${
+                isRecording
+                  ? 'bg-rose-600 border-rose-500 text-white animate-pulse shadow-lg shadow-rose-600/30'
+                  : 'bg-slate-800/80 border-slate-700 text-rose-400 hover:bg-rose-500/10 hover:border-rose-500/40'
+              }`}
+            >
+              {isRecording ? (
+                <>
+                  <Square className="w-3.5 h-3.5 fill-current" />
+                  <span>{recordDuration}s</span>
+                </>
+              ) : (
+                <>
+                  <Video className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Record</span>
+                </>
+              )}
+            </button>
+          </Tooltip>
 
           {/* Desktop Only Buttons */}
           <div className="hidden md:flex items-center space-x-1.5">
             {/* Snapshot PNG */}
-            <button
-              onClick={handleSnapshot}
-              className="p-1.5 px-2 rounded-lg bg-slate-800/80 border border-slate-700 text-slate-300 hover:text-white text-xs flex items-center gap-1"
-              title="Take High-Res PNG Snapshot"
-            >
-              <Camera className="w-3.5 h-3.5 text-sky-400" />
-              <span className="hidden xl:inline">PNG</span>
-            </button>
+            <Tooltip content="Ambil Foto PNG" description="Simpan gambar resolusi tinggi papan taktik">
+              <button
+                onClick={handleSnapshot}
+                className="p-1.5 px-2 rounded-lg bg-slate-800/80 border border-slate-700 text-slate-300 hover:text-white text-xs flex items-center gap-1 transition-colors"
+              >
+                <Camera className="w-3.5 h-3.5 text-sky-400" />
+                <span className="hidden xl:inline">PNG</span>
+              </button>
+            </Tooltip>
 
             {/* Export JSON */}
-            <button
-              onClick={handleExportJson}
-              className="p-1.5 px-2 rounded-lg bg-slate-800/80 border border-slate-700 text-slate-300 hover:text-white text-xs flex items-center gap-1"
-              title="Export Tactics to JSON"
-            >
-              <Download className="w-3.5 h-3.5 text-emerald-400" />
-              <span className="hidden xl:inline">Export</span>
-            </button>
+            <Tooltip content="Ekspor Proyek" description="Simpan file taktik .json ke komputer">
+              <button
+                onClick={handleExportJson}
+                className="p-1.5 px-2 rounded-lg bg-slate-800/80 border border-slate-700 text-slate-300 hover:text-white text-xs flex items-center gap-1 transition-colors"
+              >
+                <Download className="w-3.5 h-3.5 text-emerald-400" />
+                <span className="hidden xl:inline">Export</span>
+              </button>
+            </Tooltip>
 
             {/* Import JSON */}
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="p-1.5 px-2 rounded-lg bg-slate-800/80 border border-slate-700 text-slate-300 hover:text-white text-xs flex items-center gap-1"
-              title="Import Tactics from JSON"
-            >
-              <Upload className="w-3.5 h-3.5 text-amber-400" />
-              <span className="hidden xl:inline">Import</span>
-            </button>
+            <Tooltip content="Impor Proyek" description="Buka file taktik .json yang pernah disimpan">
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="p-1.5 px-2 rounded-lg bg-slate-800/80 border border-slate-700 text-slate-300 hover:text-white text-xs flex items-center gap-1 transition-colors"
+              >
+                <Upload className="w-3.5 h-3.5 text-amber-400" />
+                <span className="hidden xl:inline">Import</span>
+              </button>
+            </Tooltip>
 
             {/* Reset Formation */}
-            <button
-              onClick={resetTactics}
-              className="p-1.5 rounded-lg bg-slate-800/60 border border-slate-700 text-slate-400 hover:text-rose-400 transition-colors"
-              title="Reset Pitch"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-            </button>
+            <Tooltip content="Reset Lapangan" description="Kembalikan semua pemain ke posisi awal">
+              <button
+                onClick={resetTactics}
+                className="p-1.5 rounded-lg bg-slate-800/60 border border-slate-700 text-slate-400 hover:text-rose-400 transition-colors"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+              </button>
+            </Tooltip>
           </div>
 
           {/* Mobile Menu Button */}
@@ -758,6 +778,18 @@ export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({ stageRef }) => 
               <span>Reset</span>
             </button>
           </div>
+
+          {/* Panduan Tutorial Mobile Button */}
+          <button
+            onClick={() => {
+              if (onOpenTour) onOpenTour();
+              setMobileMenuOpen(false);
+            }}
+            className="w-full py-2.5 px-3 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 text-xs font-bold flex items-center justify-center gap-2 transition-colors"
+          >
+            <HelpCircle className="w-4 h-4" />
+            <span>Buka Panduan Tutorial Interaktif</span>
+          </button>
         </div>
       )}
     </>

@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { useTacticsStore } from '../../store/useTacticsStore';
 import { getTacticalPlayPresets } from '../../utils/tacticalPlays';
+import { Tooltip } from '../ui/Tooltip';
 
 const PlaybackProgressBar: React.FC = React.memo(() => {
   const isPlaying = useTacticsStore((s) => s.isPlaying);
@@ -87,50 +88,51 @@ export const TimelineBar: React.FC = React.memo(() => {
 
       {/* Left: Playback Controls */}
       <div className="flex items-center space-x-2">
-        <button
-          onClick={handleTogglePlay}
-          className={`px-3 py-2 rounded-lg font-bold text-xs flex items-center gap-1.5 transition-all ${
-            isPlaying
-              ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
-              : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-600/20'
-          }`}
-          title={
-            frames.length <= 1
-              ? 'Click to add Frame 2 and animate'
-              : isPlaying
-              ? 'Pause animation'
-              : 'Play keyframe animation'
-          }
+        <Tooltip
+          content={isPlaying ? 'Jeda Animasi' : 'Putar Animasi (Play)'}
+          description="Interpolasi pergerakan halus posisi pemain & bola antar-frame"
+          position="top"
         >
-          {isPlaying ? (
-            <>
-              <Pause className="w-4 h-4 fill-current" />
-              <span>Pause</span>
-            </>
-          ) : (
-            <>
-              <Play className="w-4 h-4 fill-current" />
-              <span>Play</span>
-            </>
-          )}
-        </button>
+          <button
+            onClick={handleTogglePlay}
+            className={`px-3 py-2 rounded-lg font-bold text-xs flex items-center gap-1.5 transition-all ${
+              isPlaying
+                ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
+                : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-600/20'
+            }`}
+          >
+            {isPlaying ? (
+              <>
+                <Pause className="w-4 h-4 fill-current" />
+                <span>Pause</span>
+              </>
+            ) : (
+              <>
+                <Play className="w-4 h-4 fill-current" />
+                <span>Play</span>
+              </>
+            )}
+          </button>
+        </Tooltip>
 
         {/* Speed Selector */}
-        <div className="bg-slate-950 p-0.5 rounded-lg border border-slate-800 flex text-[11px] font-semibold">
-          {[0.5, 1, 1.5, 2].map((spd) => (
-            <button
-              key={spd}
-              onClick={() => setPlaybackSpeed(spd)}
-              className={`px-2 py-1 rounded transition-colors ${
-                playbackSpeed === spd
-                  ? 'bg-slate-800 text-emerald-400'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              {spd}x
-            </button>
-          ))}
-        </div>
+        <Tooltip content="Kecepatan Animasi" description="Pilih kecepatan putar 0.5x s/d 2.0x" position="top">
+          <div className="bg-slate-950 p-0.5 rounded-lg border border-slate-800 flex text-[11px] font-semibold">
+            {[0.5, 1, 1.5, 2].map((spd) => (
+              <button
+                key={spd}
+                onClick={() => setPlaybackSpeed(spd)}
+                className={`px-2 py-1 rounded transition-colors ${
+                  playbackSpeed === spd
+                    ? 'bg-slate-800 text-emerald-400'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                {spd}x
+              </button>
+            ))}
+          </div>
+        </Tooltip>
       </div>
 
       {/* Center: Keyframe Timeline Cards */}
@@ -194,14 +196,20 @@ export const TimelineBar: React.FC = React.memo(() => {
           })}
 
           {/* Add Frame Button */}
-          <button
-            onClick={addFrame}
-            disabled={isPlaying}
-            className="px-3 py-1.5 rounded-lg border border-dashed border-slate-700 text-slate-400 hover:text-emerald-400 hover:border-emerald-500/50 bg-slate-950/40 text-xs font-semibold flex items-center gap-1.5 transition-all whitespace-nowrap disabled:opacity-50"
+          <Tooltip
+            content="Tambah Frame Baru"
+            description="Buat frame baru untuk melanjutkan alur gerakan animasi"
+            position="top"
           >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Add Frame</span>
-          </button>
+            <button
+              onClick={addFrame}
+              disabled={isPlaying}
+              className="px-3 py-1.5 rounded-lg border border-dashed border-slate-700 text-slate-400 hover:text-emerald-400 hover:border-emerald-500/50 bg-slate-950/40 text-xs font-semibold flex items-center gap-1.5 transition-all whitespace-nowrap disabled:opacity-50"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Add Frame</span>
+            </button>
+          </Tooltip>
         </div>
       </div>
 
@@ -209,15 +217,20 @@ export const TimelineBar: React.FC = React.memo(() => {
       <div className="flex items-center space-x-2">
         {plays.length > 0 && (
           <div className="relative" ref={playMenuRef}>
-            <button
-              onClick={() => setPlayMenuOpen(!playMenuOpen)}
-              className="px-2.5 py-1.5 rounded-lg border border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 text-xs font-semibold flex items-center gap-1.5 transition-all whitespace-nowrap shadow-sm"
-              title="Contoh Gerakan & Umpan Otomatis (Give & Go, Overlap, Third-Man)"
+            <Tooltip
+              content="Pola Lari & Umpan ⚡"
+              description="Pilih simulasi taktik nyata: One-Two, Overlap, atau Third-Man"
+              position="top"
             >
-              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-              <span className="hidden sm:inline">Pola Lari & Umpan</span>
-              <span className="sm:hidden">Pola</span>
-            </button>
+              <button
+                onClick={() => setPlayMenuOpen(!playMenuOpen)}
+                className="px-2.5 py-1.5 rounded-lg border border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 text-xs font-semibold flex items-center gap-1.5 transition-all whitespace-nowrap shadow-sm"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                <span className="hidden sm:inline">Pola Lari & Umpan</span>
+                <span className="sm:hidden">Pola</span>
+              </button>
+            </Tooltip>
 
             {playMenuOpen && (
               <div className="absolute bottom-full right-0 mb-2 z-50 bg-slate-900 border border-slate-700 rounded-xl p-2 shadow-2xl w-80 animate-in fade-in">
@@ -251,34 +264,40 @@ export const TimelineBar: React.FC = React.memo(() => {
 
         {/* Transition Duration */}
         {currentFrame && (
-          <div className="hidden lg:flex items-center space-x-2 text-xs text-slate-400 bg-slate-950 px-3 py-1.5 rounded-lg border border-slate-800">
-            <Clock className="w-3.5 h-3.5 text-slate-400" />
-            <span className="text-[11px]">Transition:</span>
-            <select
-              value={currentFrame.duration || 1.5}
-              disabled={isPlaying}
-              onChange={(e) =>
-                updateFrameDuration(activeFrameIndex, parseFloat(e.target.value))
-              }
-              className="bg-transparent text-slate-200 font-semibold focus:outline-none cursor-pointer"
-            >
-              <option value={0.5} className="bg-slate-900">
-                0.5s
-              </option>
-              <option value={1.0} className="bg-slate-900">
-                1.0s
-              </option>
-              <option value={1.5} className="bg-slate-900">
-                1.5s
-              </option>
-              <option value={2.0} className="bg-slate-900">
-                2.0s
-              </option>
-              <option value={3.0} className="bg-slate-900">
-                3.0s
-              </option>
-            </select>
-          </div>
+          <Tooltip
+            content="Durasi Transisi"
+            description="Waktu yang dibutuhkan untuk berpindah ke frame ini saat Play"
+            position="top"
+          >
+            <div className="hidden lg:flex items-center space-x-2 text-xs text-slate-400 bg-slate-950 px-3 py-1.5 rounded-lg border border-slate-800">
+              <Clock className="w-3.5 h-3.5 text-slate-400" />
+              <span className="text-[11px]">Transition:</span>
+              <select
+                value={currentFrame.duration || 1.5}
+                disabled={isPlaying}
+                onChange={(e) =>
+                  updateFrameDuration(activeFrameIndex, parseFloat(e.target.value))
+                }
+                className="bg-transparent text-slate-200 font-semibold focus:outline-none cursor-pointer"
+              >
+                <option value={0.5} className="bg-slate-900">
+                  0.5s
+                </option>
+                <option value={1.0} className="bg-slate-900">
+                  1.0s
+                </option>
+                <option value={1.5} className="bg-slate-900">
+                  1.5s
+                </option>
+                <option value={2.0} className="bg-slate-900">
+                  2.0s
+                </option>
+                <option value={3.0} className="bg-slate-900">
+                  3.0s
+                </option>
+              </select>
+            </div>
+          </Tooltip>
         )}
       </div>
     </div>

@@ -8,17 +8,27 @@ import { TimelineBar } from './components/timeline/TimelineBar';
 import { useTacticsStore } from './store/useTacticsStore';
 import { useTacticalPlayback } from './hooks/useTacticalPlayback';
 import { Users, Sliders, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { GuidedTour } from './components/ui/GuidedTour';
 
 export const App: React.FC = () => {
   const stageRef = useRef<Konva.Stage>(null);
   const [sidebarTab, setSidebarTab] = useState<'squad' | 'inspector'>('squad');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+  const [isTourOpen, setIsTourOpen] = useState(false);
 
   const selectedPlayerId = useTacticsStore((s) => s.selectedPlayerId);
 
   // Activate playback interpolation loop hook
   useTacticalPlayback();
+
+  // Show guided tour on first visit if not dismissed
+  useEffect(() => {
+    const tourDismissed = localStorage.getItem('bola_bundar_tour_dismissed');
+    if (!tourDismissed) {
+      setIsTourOpen(true);
+    }
+  }, []);
 
   // Automatically switch tab to inspector when a player is selected and open drawer on mobile
   useEffect(() => {
@@ -30,8 +40,11 @@ export const App: React.FC = () => {
 
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden bg-slate-950 font-sans">
+      {/* 0. Interactive Guided Tour Walkthrough */}
+      <GuidedTour isOpen={isTourOpen} onClose={() => setIsTourOpen(false)} />
+
       {/* 1. Top Navbar Controls */}
-      <TopNavbar stageRef={stageRef} />
+      <TopNavbar stageRef={stageRef} onOpenTour={() => setIsTourOpen(true)} />
 
       {/* 2. Middle Main Workspace (Canvas + Responsive Sidebar / Mobile Drawer) */}
       <div className="flex-1 flex overflow-hidden relative">

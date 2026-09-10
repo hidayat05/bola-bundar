@@ -9,6 +9,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { useTacticsStore } from '../../store/useTacticsStore';
 import { TeamSide } from '../../types/tactics';
 import { getFormationsForPitch } from '../../utils/formations';
+import { Tooltip } from '../ui/Tooltip';
 
 export const SquadManager: React.FC = React.memo(() => {
   const [activeTab, setActiveTab] = useState<TeamSide>('home');
@@ -173,17 +174,18 @@ export const SquadManager: React.FC = React.memo(() => {
           </select>
         </div>
 
-        <button
-          onClick={() => setShowTeamCustomizer(!showTeamCustomizer)}
-          className={`mt-4 p-1.5 rounded-lg border transition-colors ${
-            showTeamCustomizer
-              ? 'bg-slate-700 border-slate-600 text-slate-100'
-              : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-slate-200'
-          }`}
-          title="Team Colors & Customization"
-        >
-          <Settings2 className="w-4 h-4" />
-        </button>
+        <Tooltip title="Pengaturan Tim" description="Kustomisasi nama dan warna jersey tim" position="left">
+          <button
+            onClick={() => setShowTeamCustomizer(!showTeamCustomizer)}
+            className={`mt-4 p-1.5 rounded-lg border transition-colors ${
+              showTeamCustomizer
+                ? 'bg-slate-700 border-slate-600 text-slate-100'
+                : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Settings2 className="w-4 h-4" />
+          </button>
+        </Tooltip>
       </div>
 
       {/* Team Customizer Accordion */}
@@ -248,12 +250,14 @@ export const SquadManager: React.FC = React.memo(() => {
               <Users className="w-3.5 h-3.5 text-emerald-400" />
               Active on Pitch ({activePitchPlayers.length})
             </span>
-            <button
-              onClick={() => addPlayer(activeTab, false)}
-              className="text-[11px] text-emerald-400 hover:text-emerald-300 flex items-center gap-1 font-semibold"
-            >
-              <Plus className="w-3 h-3" /> Add Player
-            </button>
+            <Tooltip title="Tambah Pemain" description="Tambahkan pemain baru ke lapangan" position="left">
+              <button
+                onClick={() => addPlayer(activeTab, false)}
+                className="text-[11px] text-emerald-400 hover:text-emerald-300 flex items-center gap-1 font-semibold"
+              >
+                <Plus className="w-3 h-3" /> Add Player
+              </button>
+            </Tooltip>
           </div>
 
           <div className="space-y-1">
@@ -291,16 +295,17 @@ export const SquadManager: React.FC = React.memo(() => {
                 </div>
 
                 <div className="flex items-center space-x-1">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      toggleBenchPlayer(player.id);
-                    }}
-                    className="p-1 text-slate-400 hover:text-amber-300 rounded"
-                    title="Send to Sideline Bench"
-                  >
-                    <Armchair className="w-3.5 h-3.5" />
-                  </button>
+                  <Tooltip title="Tarik ke Bangku Cadangan" description="Keluarkan pemain ke pinggir lapangan" position="left">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleBenchPlayer(player.id);
+                      }}
+                      className="p-1 text-slate-400 hover:text-amber-300 rounded"
+                    >
+                      <Armchair className="w-3.5 h-3.5" />
+                    </button>
+                  </Tooltip>
                 </div>
               </div>
             ))}
@@ -314,12 +319,14 @@ export const SquadManager: React.FC = React.memo(() => {
               <Armchair className="w-3.5 h-3.5" />
               Sideline Bench ({benchPlayers.length})
             </span>
-            <button
-              onClick={() => addPlayer(activeTab, true)}
-              className="text-[11px] text-amber-400 hover:text-amber-300 flex items-center gap-1 font-semibold"
-            >
-              <Plus className="w-3 h-3" /> Add Sub
-            </button>
+            <Tooltip title="Tambah Cadangan" description="Tambahkan pemain cadangan di pinggir lapangan" position="left">
+              <button
+                onClick={() => addPlayer(activeTab, true)}
+                className="text-[11px] text-amber-400 hover:text-amber-300 flex items-center gap-1 font-semibold"
+              >
+                <Plus className="w-3 h-3" /> Add Sub
+              </button>
+            </Tooltip>
           </div>
 
           <div className="space-y-1">
@@ -349,16 +356,17 @@ export const SquadManager: React.FC = React.memo(() => {
                     <span className="font-medium text-xs text-slate-200">{player.name}</span>
                   </div>
 
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      toggleBenchPlayer(player.id);
-                    }}
-                    className="text-[10px] font-semibold text-emerald-400 hover:text-emerald-300 bg-emerald-500/15 px-2 py-0.5 rounded border border-emerald-500/30"
-                    title="Bring onto pitch"
-                  >
-                    To Pitch
-                  </button>
+                  <Tooltip title="Masukkan ke Lapangan" description="Pindahkan dari bangku cadangan ke lapangan" position="left">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleBenchPlayer(player.id);
+                      }}
+                      className="text-[10px] font-semibold text-emerald-400 hover:text-emerald-300 bg-emerald-500/15 px-2 py-0.5 rounded border border-emerald-500/30"
+                    >
+                      To Pitch
+                    </button>
+                  </Tooltip>
                 </div>
               ))
             )}
