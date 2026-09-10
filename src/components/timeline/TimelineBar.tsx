@@ -87,7 +87,7 @@ export const TimelineBar: React.FC = React.memo(() => {
       <PlaybackProgressBar />
 
       {/* Left: Playback Controls */}
-      <div className="flex items-center space-x-2">
+      <div data-tour="timeline-controls" className="flex items-center space-x-2">
         <Tooltip
           content={isPlaying ? 'Jeda Animasi' : 'Putar Animasi (Play)'}
           description="Interpolasi pergerakan halus posisi pemain & bola antar-frame"
@@ -216,7 +216,7 @@ export const TimelineBar: React.FC = React.memo(() => {
       {/* Right: Tactical Play Templates & Active Frame Settings */}
       <div className="flex items-center space-x-2">
         {plays.length > 0 && (
-          <div className="relative" ref={playMenuRef}>
+          <div data-tour="tactical-plays" className="relative" ref={playMenuRef}>
             <Tooltip
               content="Pola Lari & Umpan ⚡"
               description="Pilih simulasi taktik nyata: One-Two, Overlap, atau Third-Man"

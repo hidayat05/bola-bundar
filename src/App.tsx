@@ -9,6 +9,7 @@ import { useTacticsStore } from './store/useTacticsStore';
 import { useTacticalPlayback } from './hooks/useTacticalPlayback';
 import { Users, Sliders, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { GuidedTour } from './components/ui/GuidedTour';
+import { SplashScreen } from './components/ui/SplashScreen';
 
 export const App: React.FC = () => {
   const stageRef = useRef<Konva.Stage>(null);
@@ -16,19 +17,38 @@ export const App: React.FC = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [isTourOpen, setIsTourOpen] = useState(false);
+  const [showSplash, setShowSplash] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return !sessionStorage.getItem('bola_bundar_splash_played');
+    }
+    return true;
+  });
 
   const selectedPlayerId = useTacticsStore((s) => s.selectedPlayerId);
 
   // Activate playback interpolation loop hook
   useTacticalPlayback();
 
-  // Show guided tour on first visit if not dismissed
+  // If splash was already played in session, trigger tour check on mount
   useEffect(() => {
+    if (!showSplash) {
+      const tourDismissed = localStorage.getItem('bola_bundar_tour_dismissed');
+      if (!tourDismissed) {
+        setIsTourOpen(true);
+      }
+    }
+  }, [showSplash]);
+
+  const handleSplashComplete = () => {
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('bola_bundar_splash_played', 'true');
+    }
+    setShowSplash(false);
     const tourDismissed = localStorage.getItem('bola_bundar_tour_dismissed');
     if (!tourDismissed) {
       setIsTourOpen(true);
     }
-  }, []);
+  };
 
   // Automatically switch tab to inspector when a player is selected and open drawer on mobile
   useEffect(() => {
@@ -40,16 +60,23 @@ export const App: React.FC = () => {
 
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden bg-slate-950 font-sans">
-      {/* 0. Interactive Guided Tour Walkthrough */}
+      {/* 0. First Launch Animated 3D Soccer Ball Splash Screen */}
+      {showSplash && <SplashScreen onComplete={handleSplashComplete} />}
+
+      {/* 0. Interactive Guided Tour Walkthrough with Spotlight Button Highlighting */}
       <GuidedTour isOpen={isTourOpen} onClose={() => setIsTourOpen(false)} />
 
       {/* 1. Top Navbar Controls */}
-      <TopNavbar stageRef={stageRef} onOpenTour={() => setIsTourOpen(true)} />
+      <TopNavbar
+        stageRef={stageRef}
+        onOpenTour={() => setIsTourOpen(true)}
+        onReplaySplash={() => setShowSplash(true)}
+      />
 
       {/* 2. Middle Main Workspace (Canvas + Responsive Sidebar / Mobile Drawer) */}
       <div className="flex-1 flex overflow-hidden relative">
         {/* Canvas Area */}
-        <main className="flex-1 h-full relative overflow-hidden flex flex-col">
+        <main data-tour="pitch-canvas" className="flex-1 h-full relative overflow-hidden flex flex-col">
           <TacticalCanvas stageRef={stageRef} />
 
           {/* Mobile Floating Drawer Trigger Button */}
@@ -83,6 +110,7 @@ export const App: React.FC = () => {
 
         {/* Desktop Docked Sidebar */}
         <aside
+          data-tour="squad-panel"
           className={`hidden md:flex w-80 h-full flex-col bg-slate-900 border-l border-slate-800 shadow-xl z-10 transition-all ${
             sidebarCollapsed ? 'hidden' : 'flex'
           }`}

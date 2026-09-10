@@ -37,3 +37,81 @@ html, body, #root {
   background: rgba(100, 116, 139, 0.7);
 }
 
+/* Splash Screen & Animation Keyframes */
+@keyframes ball-spin-enter {
+  0% {
+    transform: scale(0.1) rotate(0deg);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.1) rotate(540deg);
+    opacity: 1;
+  }
+  80% {
+    transform: scale(0.95) rotate(660deg);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1) rotate(720deg);
+    opacity: 1;
+  }
+}
+
+@keyframes ball-zoom-burst {
+  0% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+    filter: blur(0px);
+  }
+  40% {
+    transform: scale(2.8) rotate(240deg);
+    opacity: 0.9;
+    filter: blur(1px);
+  }
+  100% {
+    transform: scale(9) rotate(540deg);
+    opacity: 0;
+    filter: blur(10px);
+  }
+}
+
+@keyframes ring-expand {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.4);
+    opacity: 0.2;
+  }
+  100% {
+    transform: scale(1.9);
+    opacity: 0;
+  }
+}
+
+@keyframes spotlight-glow {
+  0%, 100% {
+    box-shadow: 0 0 15px rgba(52, 211, 153, 0.7), inset 0 0 15px rgba(52, 211, 153, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(52, 211, 153, 0.95), inset 0 0 25px rgba(52, 211, 153, 0.4);
+  }
+}
+
+.animate-ball-spin-enter {
+  animation: ball-spin-enter 0.9s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.animate-ball-zoom-burst {
+  animation: ball-zoom-burst 0.75s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.animate-ring-expand {
+  animation: ring-expand 1.8s cubic-bezier(0.2, 0.8, 0.2, 1) infinite;
+}
+
+.animate-spotlight-glow {
+  animation: spotlight-glow 1.5s ease-in-out infinite;
+}
+

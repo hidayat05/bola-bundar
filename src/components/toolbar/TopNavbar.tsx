@@ -44,9 +44,10 @@ import { Tooltip } from '../ui/Tooltip';
 interface TopNavbarProps {
   stageRef: React.RefObject<Konva.Stage>;
   onOpenTour?: () => void;
+  onReplaySplash?: () => void;
 }
 
-export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({ stageRef, onOpenTour }) => {
+export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({ stageRef, onOpenTour, onReplaySplash }) => {
   const {
     pitchType,
     pitchView,
@@ -209,21 +210,29 @@ export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({ stageRef, onOpe
       <header className="h-14 bg-slate-900 border-b border-slate-800 px-3 sm:px-4 flex items-center justify-between select-none z-30 relative">
         {/* Left: Brand & Sport Type Selector */}
         <div className="flex items-center space-x-2 sm:space-x-3">
-          <div className="w-8 h-8 rounded-lg bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 font-black text-sm shadow-inner shrink-0">
-            ⚽
-          </div>
+          <Tooltip content="Putar Animasi Intro ⚽" description="Tonton kembali animasi bola berputar dan membesar">
+            <button
+              onClick={onReplaySplash}
+              className="flex items-center space-x-2 hover:opacity-85 transition-opacity cursor-pointer group"
+              title="Putar Animasi Intro"
+            >
+              <div className="w-8 h-8 rounded-lg bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 font-black text-sm shadow-inner shrink-0 group-hover:scale-105 transition-transform">
+                ⚽
+              </div>
 
-          <div className="hidden lg:block">
-            <h1 className="text-sm font-bold tracking-wide text-slate-100 flex items-center gap-1.5">
-              Bola Bundar
-              <span className="text-[10px] font-semibold bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded border border-emerald-500/30">
-                Pro
-              </span>
-            </h1>
-          </div>
+              <div className="hidden lg:block text-left">
+                <h1 className="text-sm font-bold tracking-wide text-slate-100 flex items-center gap-1.5">
+                  Bola Bundar
+                  <span className="text-[10px] font-semibold bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded border border-emerald-500/30">
+                    Pro
+                  </span>
+                </h1>
+              </div>
+            </button>
+          </Tooltip>
 
           {/* Sport Type Segmented Control */}
-          <div className="bg-slate-950 p-0.5 rounded-lg border border-slate-800 flex text-xs">
+          <div data-tour="pitch-controls" className="bg-slate-950 p-0.5 rounded-lg border border-slate-800 flex text-xs">
             <button
               onClick={() => setPitchType('football')}
               className={`px-2 sm:px-2.5 py-1.5 rounded-md font-medium transition-all ${
@@ -258,7 +267,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({ stageRef, onOpe
         </div>
 
         {/* 1 Tim (Solo) vs 2 Tim (Lawan) Toggle Button - Visible on both desktop & mobile */}
-        <div className="bg-slate-950 p-0.5 rounded-lg border border-slate-800 flex text-xs shrink-0 items-center">
+        <div data-tour="solo-mode" className="bg-slate-950 p-0.5 rounded-lg border border-slate-800 flex text-xs shrink-0 items-center">
           <button
             onClick={() => setTeamDisplayMode('both')}
             className={`px-2 sm:px-2.5 py-1.5 rounded-md font-medium flex items-center gap-1 transition-all ${
@@ -361,7 +370,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({ stageRef, onOpe
           </div>
 
           {/* Tactical 18 Zones with Integrated Color Changer */}
-          <div className="relative flex items-center">
+          <div data-tour="zones-grid" className="relative flex items-center">
             <button
               onClick={() => setShowZones(!showZones)}
               className={`p-1.5 px-2 text-xs flex items-center gap-1.5 transition-colors border ${
@@ -510,7 +519,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({ stageRef, onOpe
           </Tooltip>
 
           {/* Desktop Only Buttons */}
-          <div className="hidden md:flex items-center space-x-1.5">
+          <div data-tour="export-controls" className="hidden md:flex items-center space-x-1.5">
             {/* Snapshot PNG */}
             <Tooltip content="Ambil Foto PNG" description="Simpan gambar resolusi tinggi papan taktik">
               <button

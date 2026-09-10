@@ -67,7 +67,11 @@ export const Tooltip: React.FC<TooltipProps> = ({
 
   return (
     <div
-      className="relative inline-flex items-center"
+      className={`relative inline-flex items-center transition-all duration-200 rounded-lg ${
+        isVisible
+          ? 'ring-2 ring-emerald-400/90 shadow-[0_0_14px_rgba(52,211,153,0.45)]'
+          : ''
+      }`}
       onMouseEnter={showTooltip}
       onMouseLeave={hideTooltip}
       onFocus={showTooltip}
