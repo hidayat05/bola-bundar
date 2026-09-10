@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Play,
   Pause,
@@ -6,11 +6,14 @@ import {
   Copy,
   Trash2,
   Clock,
+  Sparkles,
 } from 'lucide-react';
 import { useTacticsStore } from '../../store/useTacticsStore';
+import { getTacticalPlayPresets } from '../../utils/tacticalPlays';
 
 export const TimelineBar: React.FC = () => {
   const {
+    pitchType,
     frames,
     activeFrameIndex,
     isPlaying,
@@ -21,9 +24,32 @@ export const TimelineBar: React.FC = () => {
     duplicateFrame,
     removeFrame,
     updateFrameDuration,
+    loadPlayPreset,
     setIsPlaying,
     setPlaybackSpeed,
   } = useTacticsStore();
+
+  const [playMenuOpen, setPlayMenuOpen] = useState(false);
+  const playMenuRef = useRef<HTMLDivElement>(null);
+  const plays = getTacticalPlayPresets(pitchType);
+
+  // Close plays menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        playMenuRef.current &&
+        !playMenuRef.current.contains(e.target as Node)
+      ) {
+        setPlayMenuOpen(false);
+      }
+    };
+    if (playMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [playMenuOpen]);
 
   const currentFrame = frames[activeFrameIndex];
 
@@ -171,37 +197,82 @@ export const TimelineBar: React.FC = () => {
         </div>
       </div>
 
-      {/* Right: Active Frame Settings */}
-      {currentFrame && (
-        <div className="hidden lg:flex items-center space-x-2 text-xs text-slate-400 bg-slate-950 px-3 py-1.5 rounded-lg border border-slate-800">
-          <Clock className="w-3.5 h-3.5 text-slate-400" />
-          <span className="text-[11px]">Transition:</span>
-          <select
-            value={currentFrame.duration || 1.5}
-            disabled={isPlaying}
-            onChange={(e) =>
-              updateFrameDuration(activeFrameIndex, parseFloat(e.target.value))
-            }
-            className="bg-transparent text-slate-200 font-semibold focus:outline-none cursor-pointer"
-          >
-            <option value={0.5} className="bg-slate-900">
-              0.5s
-            </option>
-            <option value={1.0} className="bg-slate-900">
-              1.0s
-            </option>
-            <option value={1.5} className="bg-slate-900">
-              1.5s
-            </option>
-            <option value={2.0} className="bg-slate-900">
-              2.0s
-            </option>
-            <option value={3.0} className="bg-slate-900">
-              3.0s
-            </option>
-          </select>
-        </div>
-      )}
+      {/* Right: Tactical Play Templates & Active Frame Settings */}
+      <div className="flex items-center space-x-2">
+        {plays.length > 0 && (
+          <div className="relative" ref={playMenuRef}>
+            <button
+              onClick={() => setPlayMenuOpen(!playMenuOpen)}
+              className="px-2.5 py-1.5 rounded-lg border border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 text-xs font-semibold flex items-center gap-1.5 transition-all whitespace-nowrap shadow-sm"
+              title="Contoh Gerakan & Umpan Otomatis (Give & Go, Overlap, Third-Man)"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+              <span className="hidden sm:inline">Pola Lari & Umpan</span>
+              <span className="sm:hidden">Pola</span>
+            </button>
+
+            {playMenuOpen && (
+              <div className="absolute bottom-full right-0 mb-2 z-50 bg-slate-900 border border-slate-700 rounded-xl p-2 shadow-2xl w-80 animate-in fade-in">
+                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 py-1 mb-1 border-b border-slate-800">
+                  ⚡ Simulasi Pola Operan & Buka Ruang
+                </div>
+                <div className="space-y-1">
+                  {plays.map((play) => (
+                    <button
+                      key={play.id}
+                      onClick={() => {
+                        loadPlayPreset(play.frames);
+                        setPlayMenuOpen(false);
+                      }}
+                      className="w-full text-left p-2 rounded-lg hover:bg-slate-800 transition-colors group"
+                    >
+                      <div className="text-xs font-bold text-slate-200 group-hover:text-amber-300 flex items-center gap-1.5">
+                        <Sparkles className="w-3 h-3 text-amber-400" />
+                        {play.name}
+                      </div>
+                      <div className="text-[11px] text-slate-400 mt-0.5 leading-snug">
+                        {play.subtitle}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Transition Duration */}
+        {currentFrame && (
+          <div className="hidden lg:flex items-center space-x-2 text-xs text-slate-400 bg-slate-950 px-3 py-1.5 rounded-lg border border-slate-800">
+            <Clock className="w-3.5 h-3.5 text-slate-400" />
+            <span className="text-[11px]">Transition:</span>
+            <select
+              value={currentFrame.duration || 1.5}
+              disabled={isPlaying}
+              onChange={(e) =>
+                updateFrameDuration(activeFrameIndex, parseFloat(e.target.value))
+              }
+              className="bg-transparent text-slate-200 font-semibold focus:outline-none cursor-pointer"
+            >
+              <option value={0.5} className="bg-slate-900">
+                0.5s
+              </option>
+              <option value={1.0} className="bg-slate-900">
+                1.0s
+              </option>
+              <option value={1.5} className="bg-slate-900">
+                1.5s
+              </option>
+              <option value={2.0} className="bg-slate-900">
+                2.0s
+              </option>
+              <option value={3.0} className="bg-slate-900">
+                3.0s
+              </option>
+            </select>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

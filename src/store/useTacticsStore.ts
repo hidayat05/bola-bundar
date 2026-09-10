@@ -92,6 +92,7 @@ interface TacticsState {
   duplicateFrame: (index: number) => void;
   removeFrame: (index: number) => void;
   updateFrameDuration: (index: number, duration: number) => void;
+  loadPlayPreset: (frames: TacticalKeyframe[]) => void;
   setIsPlaying: (playing: boolean) => void;
   setPlaybackSpeed: (speed: number) => void;
   resetTactics: () => void;
@@ -492,6 +493,19 @@ export const useTacticsStore = create<TacticsState>((set, get) => {
         updatedFrames[index] = { ...updatedFrames[index], duration: Math.max(0.2, duration) };
         set({ frames: updatedFrames });
       }
+    },
+
+    loadPlayPreset: (frames: TacticalKeyframe[]) => {
+      if (!frames || frames.length === 0) return;
+      set({
+        frames,
+        activeFrameIndex: 0,
+        selectedPlayerId: null,
+        hoveredPlayerId: null,
+        swapTargetPlayerId: null,
+        interpolatedFrame: null,
+        isPlaying: false,
+      });
     },
 
     setActiveTool: (tool: ActiveTool) => set({ activeTool: tool, selectedPlayerId: null }),

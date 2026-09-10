@@ -19,8 +19,9 @@ export const BallNode: React.FC<BallNodeProps> = ({
   onUpdatePosition,
   setIsDragging,
 }) => {
-  const { activeTool, isPlaying } = useTacticsStore();
+  const { activeTool, isPlaying, frames, activeFrameIndex } = useTacticsStore();
   const isInteractive = activeTool === 'select' && !isPlaying;
+  const currentFrame = frames[activeFrameIndex];
 
   const radius = Math.max(7, Math.min(11, layout.pitchRect.width * 0.01));
   const canvasPos = normToCanvas(ball.x, ball.y, false, 'neutral', layout);
@@ -33,8 +34,33 @@ export const BallNode: React.FC<BallNodeProps> = ({
     setIsDragging(false);
     const dropX = e.target.x();
     const dropY = e.target.y();
-    const { normX, normY } = canvasToNorm(dropX, dropY, layout);
-    onUpdatePosition(normX, normY);
+
+    // Magnetic snap to nearby player's feet (within 36px)
+    const activePlayers = currentFrame?.players.filter((p) => !p.isBench) || [];
+    let closestPlayer = null;
+    let closestDist = Infinity;
+
+    for (const p of activePlayers) {
+      const pPos = normToCanvas(p.x, p.y, false, p.team, layout);
+      const d = Math.hypot(dropX - pPos.x, dropY - pPos.y);
+      if (d < closestDist) {
+        closestDist = d;
+        closestPlayer = { player: p, pos: pPos };
+      }
+    }
+
+    if (closestPlayer && closestDist < 36) {
+      // Snap slightly ahead of player based on their facing angle
+      const rad = (closestPlayer.player.rotation * Math.PI) / 180;
+      const snapDist = 17;
+      const snappedCanvasX = closestPlayer.pos.x + Math.cos(rad) * snapDist;
+      const snappedCanvasY = closestPlayer.pos.y + Math.sin(rad) * snapDist;
+      const { normX, normY } = canvasToNorm(snappedCanvasX, snappedCanvasY, layout);
+      onUpdatePosition(normX, normY);
+    } else {
+      const { normX, normY } = canvasToNorm(dropX, dropY, layout);
+      onUpdatePosition(normX, normY);
+    }
   };
 
   return (
