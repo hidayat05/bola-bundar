@@ -1,91 +1,160 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Trophy,
-  MousePointer,
   Spline,
   Play,
   Sparkles,
   Layers,
   Users,
+  Download,
   ChevronRight,
   ChevronLeft,
   X,
   CheckCircle2,
+  Lightbulb,
+  Crosshair,
 } from 'lucide-react';
 import { useTacticsStore } from '../../store/useTacticsStore';
 
 interface TourStep {
+  selector?: string;
+  badge: string;
   title: string;
-  subtitle: string;
-  description: string;
+  buttonName: string;
+  functionDesc: string;
+  benefitDesc: string;
+  hint: string;
   icon: React.FC<{ className?: string }>;
   accentColor: string;
-  hint: string;
+  placement?: 'bottom' | 'top' | 'left' | 'right' | 'center';
 }
 
 const TOUR_STEPS: TourStep[] = [
   {
+    selector: '[data-tour="pitch-canvas"]',
+    badge: 'Papan Taktik Interaktif',
+    buttonName: 'Token Pemain, Bola & Lapangan',
     title: 'Selamat Datang di Bola Bundar! ⚽',
-    subtitle: 'Papan Taktik & Animasi Interaktif Sepak Bola, Mini Soccer & Futsal',
-    description:
-      'Aplikasi ini dirancang untuk pelatih, analis, dan pemain membuat simulasi taktik, pola pergerakan lari, dan animasi operan bola secara mudah dan profesional.',
+    functionDesc:
+      'Geser token pemain dan bola ke mana saja di lapangan. Putar titik kontrol (knob oranye) untuk menentukan arah pandang pemain.',
+    benefitDesc:
+      'Membantu Anda memvisualisasikan struktur formasi tim secara real-time. Dilengkapi fitur Magnetic Snap saat bola didekatkan ke kaki pemain.',
+    hint: 'Tukar posisi (swap) 2 pemain langsung dengan mendrag satu token tepat ke atas token pemain lain.',
     icon: Trophy,
-    accentColor: 'from-amber-500 to-yellow-600',
-    hint: 'Ikuti panduan singkat ini atau lewati kapan saja dengan tombol Skip/Lewati.',
-  },
-  {
-    title: '1. Papan Taktik & Pemain Interaktif',
-    subtitle: 'Drag & Drop Bebas, Rotasi Arah Hadap, & Magnet Bola',
-    description:
-      'Tarik token pemain ke mana saja di lapangan. Putar titik pegangan (handle) untuk mengubah arah hadap (0-360°). Dekatkan bola ke kaki pemain untuk fitur Magnetic Snap!',
-    icon: MousePointer,
-    accentColor: 'from-blue-500 to-cyan-600',
-    hint: 'Tukar posisi (swap) 2 pemain langsung dengan mendrag satu pemain ke atas pemain lain.',
-  },
-  {
-    title: '2. Alat Gambar & Anotasi Taktis',
-    subtitle: 'Panah Umpan, Jalur Lari Putus-putus, Dribble Wavy & Zona',
-    description:
-      'Gunakan floating toolbar di pojok kiri atas untuk menggambar garis operan bola, jalur lari tanpa bola (dashed), liukan dribble bergelombang, atau blok area taktis.',
-    icon: Spline,
     accentColor: 'from-emerald-500 to-teal-600',
-    hint: 'Pilih warna favorit dari palet warna atau gunakan penghapus (eraser) untuk menghapus anotasi.',
+    placement: 'center',
   },
   {
-    title: '3. Keyframe Timeline & Animasi Halus',
-    subtitle: 'Alur Gerakan Mulus Antar-Frame (Cubic Ease-In-Out)',
-    description:
-      'Animasi dibuat dari rangkaian Frame (Frame 1 ➔ Frame 2 ➔ Frame 3). Gandakan Frame (📋), geser pemain & bola ke titik baru, lalu tekan Play (▶) untuk menonton pergerakan hidup!',
+    selector: '[data-tour="pitch-controls"]',
+    badge: 'Navigasi Atas (Top Navbar)',
+    buttonName: 'Tipe Lapangan (11v11, Mini, Futsal)',
+    title: 'Pilihan Dimensi Lapangan',
+    functionDesc:
+      'Mengubah ukuran dan garis batas lapangan secara instan antara Sepak Bola Besar (11v11), Mini Soccer (7v7/8v8), atau Lapangan Futsal (5v5).',
+    benefitDesc:
+      'Proporsi dimensi lapangan akan disesuaikan otomatis dengan standar lapangan resmi sehingga ruang taktik selalu akurat.',
+    hint: 'Gunakan juga tombol "Full / Half" di sampingnya untuk simulasi skema sepak pojok atau tendangan bebas di setengah lapangan.',
+    icon: Crosshair,
+    accentColor: 'from-blue-500 to-cyan-600',
+    placement: 'bottom',
+  },
+  {
+    selector: '[data-tour="solo-mode"]',
+    badge: 'Navigasi Atas (Top Navbar)',
+    buttonName: 'Mode 1 Tim (Solo) vs 2 Tim',
+    title: 'Fokus Latihan 1 Tim Tanpa Lawan',
+    functionDesc:
+      'Menyembunyikan tim lawan sehingga di lapangan hanya terdapat 1 tim yang sedang fokus membangun serangan (build-up shape).',
+    benefitDesc:
+      'Sangat berguna untuk menyusun skema pola aliran bola dan drill passing tanpa terganggu kepadatan token tim lawan.',
+    hint: 'Klik badge "Home/Away" di sebelahnya untuk berganti tim mana yang ingin ditampilkan sendiri.',
+    icon: Users,
+    accentColor: 'from-teal-500 to-emerald-600',
+    placement: 'bottom',
+  },
+  {
+    selector: '[data-tour="zones-grid"]',
+    badge: 'Navigasi Atas (Top Navbar)',
+    buttonName: '18 Zones Grid & Palet Warna',
+    title: 'Kisi Taktis 18 Zona Pep & Van Gaal',
+    functionDesc:
+      'Membagi lapangan menjadi 18 zona analitik modern dengan penomoran standar UEFA, termasuk sorotan khusus Zona 14 (lubang pertahanan lawan).',
+    benefitDesc:
+      'Memudahkan instruksi pelatih mengenai penguasaan ruang, eksploitasi half-space (sayap dalam), dan pemosisian gelandang serang.',
+    hint: 'Klik ikon palet kecil di samping tombol 18 Zones untuk mengganti warna garis zona (Kuning, Putih, Cyan, Merah, dll).',
+    icon: Layers,
+    accentColor: 'from-amber-500 to-yellow-600',
+    placement: 'bottom',
+  },
+  {
+    selector: '[data-tour="drawing-toolbar"]',
+    badge: 'Alat Gambar Mengambang (Floating)',
+    buttonName: 'Drawing Toolbar (Umpan, Lari, Dribble, Area)',
+    title: 'Anotasi & Garis Taktis',
+    functionDesc:
+      'Menyediakan panah operan lurus (solid), garis lari sprint tanpa bola (dashed), liukan dribble bergelombang (wavy), dan kotak area taktis.',
+    benefitDesc:
+      'Memvisualisasikan rencana pergerakan taktis sebelum disimulasikan, sehingga pemain memahami jalur lari dan tujuan umpan.',
+    hint: 'Pilih warna favorit di palet warna atau gunakan alat Penghapus (Eraser) untuk menghapus goresan.',
+    icon: Spline,
+    accentColor: 'from-rose-500 to-pink-600',
+    placement: 'right',
+  },
+  {
+    selector: '[data-tour="timeline-controls"]',
+    badge: 'Timeline Bawah',
+    buttonName: 'Play/Pause (▶), Speed, & Add Frame',
+    title: 'Keyframe Timeline & Animasi Halus',
+    functionDesc:
+      'Memutar pergerakan animasi posisi pemain dan operan bola antar-frame dengan interpolasi pergerakan halus 60fps (Cubic Ease-In-Out).',
+    benefitDesc:
+      'Simulasi taktik bergerak seperti video sungguhan. Anda dapat mengatur kecepatan (0.5x hingga 2x) dan menambah frame baru (📋).',
+    hint: 'Pemain akan otomatis memutar arah badannya menghadap arah berlari secara dinamis saat animasi diputar.',
     icon: Play,
     accentColor: 'from-violet-500 to-purple-600',
-    hint: 'Pemain otomatis berputar menghadap arah larinya (Auto-Facing) saat animasi berjalan.',
+    placement: 'top',
   },
   {
-    title: '4. Pola Lari & Umpan Siap Pakai ⚡',
-    subtitle: 'Contoh Taktik Populer (Give & Go, Overlap, Third-Man)',
-    description:
-      'Ingin melihat simulasi operan bola dan pemain membuka ruang sungguhan? Klik tombol "Pola Lari & Umpan" di timeline bawah untuk memuat simulasi siap tonton.',
+    selector: '[data-tour="tactical-plays"]',
+    badge: 'Timeline Bawah',
+    buttonName: 'Pola Lari & Umpan Siap Pakai ⚡',
+    title: 'Koleksi Simulasi Taktik Otomatis',
+    functionDesc:
+      'Memuat pola kombinasi lari dan operan nyata yang siap ditonton: One-Two Wall Pass, Overlapping Wing-Back, dan Third-Man Run.',
+    benefitDesc:
+      'Tidak perlu menyusun frame dari nol jika ingin menunjukkan contoh pergerakan membuka ruang dan operan satu-dua kepada pemain.',
+    hint: 'Pola taktik ini menyesuaikan secara dinamis tergantung apakah Anda berada di lapangan Sepak Bola, Mini Soccer, atau Futsal.',
     icon: Sparkles,
     accentColor: 'from-amber-500 to-orange-600',
-    hint: 'Tersedia Give & Go (One-Two), Overlapping Wing Run, dan Tiki-Taka Third-Man Run.',
+    placement: 'top',
   },
   {
-    title: '5. 18 Zona Taktis & Pilihan Rumput',
-    subtitle: 'Visual Analitik Louis van Gaal / UEFA & Full Green Grass',
-    description:
-      'Aktifkan tombol "18 Zones" di navbar atas untuk membagi lapangan menjadi 18 zona taktis bernomor (dengan Zone 14 di-highlight). Lengkap dengan pengubah warna zona & rumput Full Green.',
-    icon: Layers,
-    accentColor: 'from-rose-500 to-pink-600',
-    hint: 'Klik ikon palet di samping tombol 18 Zones untuk mengganti warna garis zona.',
-  },
-  {
-    title: '6. Formasi, Cadangan, & Ekspor Video / PNG',
-    subtitle: 'Kustomisasi Skuad Lengkap & Ekspor Berkualitas Tinggi',
-    description:
-      'Pilih formasi dari menu samping (4-3-3, 3-5-2, Futsal Diamond, dll). Rekam animasi ke format video (.webm) atau simpan foto papan taktik resolusi tinggi (2x Retina PNG).',
+    selector: '[data-tour="squad-panel"]',
+    badge: 'Sidebar Kanan',
+    buttonName: 'Manajemen Skuad & Formasi',
+    title: 'Formasi Tim & Bangku Cadangan (Bench)',
+    functionDesc:
+      'Memilih preset formasi populer (4-3-3, 3-5-2, Futsal Diamond, dll) dan mengelola pemain cadangan di pinggir lapangan.',
+    benefitDesc:
+      'Mendukung jumlah pemain asimetris (misal 8 lawan 7 pemain) dan pergantian pemain cadangan ke lapangan dengan sekali klik.',
+    hint: 'Klik tab "Token Inspector" saat memilih pemain untuk mengubah nomor punggung, nama, atau warna khusus token pemain.',
     icon: Users,
     accentColor: 'from-indigo-500 to-blue-600',
-    hint: 'Anda juga bisa menyimpan seluruh proyek taktik dalam format JSON untuk dibuka lagi nanti.',
+    placement: 'left',
+  },
+  {
+    selector: '[data-tour="export-controls"]',
+    badge: 'Navigasi Atas (Top Navbar)',
+    buttonName: 'Ekspor Video, PNG & Proyek JSON',
+    title: 'Bagikan & Simpan Taktik Anda',
+    functionDesc:
+      'Merekam simulasi animasi ke format video (.webm) dan menyimpan gambar papan berkualitas tinggi (Retina PNG 2x).',
+    benefitDesc:
+      'Bahan presentasi taktik Anda siap dibagikan ke grup WhatsApp tim, media sosial, atau disimpan sebagai arsip latihan pelatih.',
+    hint: 'Gunakan fitur Export JSON untuk menyimpan file proyek taktik yang bisa diedit kembali kapan saja di kemudian hari.',
+    icon: Download,
+    accentColor: 'from-emerald-500 to-green-600',
+    placement: 'bottom',
   },
 ];
 
@@ -96,7 +165,53 @@ interface GuidedTourProps {
 
 export const GuidedTour: React.FC<GuidedTourProps> = ({ isOpen, onClose }) => {
   const [currentStep, setCurrentStep] = useState(0);
+  const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
   const { showTooltips, setShowTooltips } = useTacticsStore();
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  const step = TOUR_STEPS[currentStep];
+
+  // Update bounding rect of target element
+  const updateTargetRect = () => {
+    if (!isOpen || !step.selector) {
+      setTargetRect(null);
+      return;
+    }
+
+    const el = document.querySelector(step.selector);
+    if (el) {
+      const rect = el.getBoundingClientRect();
+      setTargetRect(rect);
+    } else {
+      setTargetRect(null);
+    }
+  };
+
+  useEffect(() => {
+    updateTargetRect();
+
+    // Listen to resize and scroll
+    window.addEventListener('resize', updateTargetRect);
+    window.addEventListener('scroll', updateTargetRect, true);
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        handleSkip();
+      } else if (e.key === 'ArrowRight') {
+        handleNext();
+      } else if (e.key === 'ArrowLeft') {
+        handlePrev();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      window.removeEventListener('resize', updateTargetRect);
+      window.removeEventListener('scroll', updateTargetRect, true);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [currentStep, isOpen]);
 
   const handleSkip = () => {
     localStorage.setItem('bola_bundar_tour_dismissed', 'true');
@@ -119,130 +234,290 @@ export const GuidedTour: React.FC<GuidedTourProps> = ({ isOpen, onClose }) => {
 
   if (!isOpen) return null;
 
-  const step = TOUR_STEPS[currentStep];
   const Icon = step.icon;
   const isLast = currentStep === TOUR_STEPS.length - 1;
 
+  // Calculate smart position for floating card
+  let cardStyle: React.CSSProperties = {};
+  const margin = 16;
+  const cardWidth = 440;
+
+  if (targetRect && step.placement !== 'center') {
+    const isMobile = window.innerWidth < 768;
+
+    if (isMobile) {
+      // On mobile, dock nicely at bottom center
+      cardStyle = {
+        bottom: '20px',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        width: 'calc(100vw - 32px)',
+        maxWidth: '440px',
+      };
+    } else if (step.placement === 'bottom') {
+      const left = Math.max(
+        margin,
+        Math.min(
+          window.innerWidth - cardWidth - margin,
+          targetRect.left + targetRect.width / 2 - cardWidth / 2
+        )
+      );
+      cardStyle = {
+        top: `${Math.min(window.innerHeight - 360, targetRect.bottom + 16)}px`,
+        left: `${left}px`,
+        width: `${cardWidth}px`,
+      };
+    } else if (step.placement === 'top') {
+      const left = Math.max(
+        margin,
+        Math.min(
+          window.innerWidth - cardWidth - margin,
+          targetRect.left + targetRect.width / 2 - cardWidth / 2
+        )
+      );
+      cardStyle = {
+        bottom: `${Math.max(margin, window.innerHeight - targetRect.top + 16)}px`,
+        left: `${left}px`,
+        width: `${cardWidth}px`,
+      };
+    } else if (step.placement === 'right') {
+      const left = Math.min(window.innerWidth - cardWidth - margin, targetRect.right + 18);
+      const top = Math.max(margin, Math.min(window.innerHeight - 380, targetRect.top));
+      cardStyle = {
+        top: `${top}px`,
+        left: `${left}px`,
+        width: `${cardWidth}px`,
+      };
+    } else if (step.placement === 'left') {
+      const left = Math.max(margin, targetRect.left - cardWidth - 18);
+      const top = Math.max(margin, Math.min(window.innerHeight - 380, targetRect.top));
+      cardStyle = {
+        top: `${top}px`,
+        left: `${left}px`,
+        width: `${cardWidth}px`,
+      };
+    }
+  }
+
+  const isFloating = targetRect && step.placement !== 'center';
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="relative w-full max-w-lg bg-slate-900 border border-slate-700/80 rounded-2xl shadow-2xl overflow-hidden flex flex-col">
-        {/* Top Header with Gradient Accent */}
-        <div className={`p-5 pb-4 bg-gradient-to-r ${step.accentColor} text-white relative`}>
-          {/* Close / Skip button */}
-          <button
-            onClick={handleSkip}
-            className="absolute top-4 right-4 p-1.5 rounded-full bg-black/20 hover:bg-black/40 text-white/90 hover:text-white transition-colors"
-            title="Tutup / Lewati Panduan (Esc)"
-          >
-            <X className="w-4 h-4" />
-          </button>
-
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center shadow-inner">
-              <Icon className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <span className="text-[10px] uppercase font-bold tracking-widest text-white/80">
-                Panduan Aplikasi • Langkah {currentStep + 1} dari {TOUR_STEPS.length}
-              </span>
-              <h2 className="text-base sm:text-lg font-extrabold text-white leading-tight">
-                {step.title}
-              </h2>
-            </div>
-          </div>
-        </div>
-
-        {/* Content Body */}
-        <div className="p-5 sm:p-6 space-y-4">
-          <div className="text-xs font-semibold text-slate-300">
-            {step.subtitle}
-          </div>
-
-          <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-            {step.description}
-          </p>
-
-          {/* Pro Tip / Hint Box */}
-          <div className="bg-slate-950/70 border border-slate-800 rounded-xl p-3 flex items-start gap-2.5">
-            <Sparkles className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-            <div className="text-[11px] text-slate-400 leading-normal">
-              <span className="font-semibold text-slate-300">Tips: </span>
-              {step.hint}
-            </div>
-          </div>
-
-          {/* Step Progress Dots */}
-          <div className="flex items-center justify-between pt-2">
-            <div className="flex items-center space-x-1.5">
-              {TOUR_STEPS.map((_, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => setCurrentStep(idx)}
-                  className={`h-1.5 rounded-full transition-all ${
-                    idx === currentStep
-                      ? 'w-6 bg-emerald-500'
-                      : idx < currentStep
-                      ? 'w-2 bg-slate-600'
-                      : 'w-2 bg-slate-800'
-                  }`}
-                  title={`Lompat ke langkah ${idx + 1}`}
-                />
-              ))}
-            </div>
-
-            {/* Hover Tooltip Preference Toggle */}
-            <label className="flex items-center gap-1.5 cursor-pointer text-[11px] text-slate-400 hover:text-slate-300 select-none">
-              <input
-                type="checkbox"
-                checked={showTooltips}
-                onChange={(e) => setShowTooltips(e.target.checked)}
-                className="w-3.5 h-3.5 rounded border-slate-700 bg-slate-950 text-emerald-500 focus:ring-0 cursor-pointer"
+    <div className="fixed inset-0 z-50 select-none">
+      {/* 1. Backdrop with Spotlight Cutout or Dark Scrim */}
+      {targetRect && isFloating ? (
+        <svg
+          className="fixed inset-0 w-full h-full pointer-events-auto transition-all duration-300"
+          style={{ zIndex: 45 }}
+          onClick={handleSkip}
+        >
+          <defs>
+            <mask id="spotlight-mask">
+              {/* White fills everything (opaque mask) */}
+              <rect x="0" y="0" width="100%" height="100%" fill="white" />
+              {/* Black cutout around target element */}
+              <rect
+                x={targetRect.left - 6}
+                y={targetRect.top - 6}
+                width={targetRect.width + 12}
+                height={targetRect.height + 12}
+                rx="12"
+                fill="black"
               />
-              <span>Tampilkan Tooltip</span>
-            </label>
+            </mask>
+          </defs>
+          <rect
+            x="0"
+            y="0"
+            width="100%"
+            height="100%"
+            fill="rgba(2, 6, 23, 0.82)"
+            mask="url(#spotlight-mask)"
+          />
+        </svg>
+      ) : (
+        <div
+          onClick={handleSkip}
+          className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-40 transition-opacity"
+        />
+      )}
+
+      {/* 2. Pulsing Neon Highlight Ring directly on the target button */}
+      {targetRect && isFloating && (
+        <div
+          className="fixed rounded-xl border-2 border-emerald-400 ring-4 ring-emerald-500/40 pointer-events-none transition-all duration-300 ease-out z-50 animate-spotlight-glow"
+          style={{
+            top: targetRect.top - 6,
+            left: targetRect.left - 6,
+            width: targetRect.width + 12,
+            height: targetRect.height + 12,
+          }}
+        >
+          {/* Target Button Identifier Tag */}
+          <div className="absolute -top-7 left-0 bg-emerald-500 text-slate-950 text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded shadow-lg flex items-center gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-slate-950 animate-ping" />
+            <span>Target: {step.buttonName}</span>
           </div>
         </div>
+      )}
 
-        {/* Footer Actions */}
-        <div className="p-4 px-5 bg-slate-950/60 border-t border-slate-800 flex items-center justify-between">
-          <button
-            onClick={handleSkip}
-            className="text-xs font-medium text-slate-400 hover:text-slate-200 px-3 py-1.5 rounded-lg hover:bg-slate-800 transition-colors"
-          >
-            Lewati (Skip)
-          </button>
-
-          <div className="flex items-center space-x-2">
-            {currentStep > 0 && (
-              <button
-                onClick={handlePrev}
-                className="px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold flex items-center gap-1 transition-colors"
-              >
-                <ChevronLeft className="w-3.5 h-3.5" />
-                <span>Sebelumnya</span>
-              </button>
-            )}
-
+      {/* 3. Floating or Centered Tour Card */}
+      <div
+        className={
+          isFloating
+            ? 'fixed z-50'
+            : 'fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none'
+        }
+        style={isFloating ? cardStyle : undefined}
+      >
+        <div
+          ref={cardRef}
+          className="pointer-events-auto relative w-full max-w-lg bg-slate-900 border border-slate-700/90 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200"
+        >
+          {/* Top Header with Gradient Accent */}
+          <div className={`p-4 sm:p-5 pb-3.5 bg-gradient-to-r ${step.accentColor} text-white relative`}>
+            {/* Close / Skip button */}
             <button
-              onClick={handleNext}
-              className={`px-4 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-md transition-all ${
-                isLast
-                  ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/20'
-                  : 'bg-emerald-600 hover:bg-emerald-500 text-white'
-              }`}
+              onClick={handleSkip}
+              className="absolute top-3.5 right-3.5 p-1.5 rounded-full bg-black/25 hover:bg-black/50 text-white/90 hover:text-white transition-colors"
+              title="Tutup / Lewati Panduan (Esc)"
             >
-              {isLast ? (
-                <>
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span>Mulai Menggambar!</span>
-                </>
-              ) : (
-                <>
-                  <span>Lanjut</span>
-                  <ChevronRight className="w-3.5 h-3.5" />
-                </>
-              )}
+              <X className="w-4 h-4" />
             </button>
+
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center shadow-inner shrink-0">
+                <Icon className="w-5 h-5 text-white" />
+              </div>
+              <div className="pr-6">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] uppercase font-bold tracking-widest text-white/80">
+                    Langkah {currentStep + 1} dari {TOUR_STEPS.length}
+                  </span>
+                  <span className="text-[9px] bg-black/30 border border-white/20 px-1.5 py-0.2 rounded font-mono text-white/90">
+                    {step.badge}
+                  </span>
+                </div>
+                <h2 className="text-sm sm:text-base font-extrabold text-white leading-tight mt-0.5">
+                  {step.title}
+                </h2>
+              </div>
+            </div>
+          </div>
+
+          {/* Structured Content Body: Fungsi & Kegunaan */}
+          <div className="p-4 sm:p-5 space-y-3 bg-slate-900/95">
+            {/* Target Button Name Banner */}
+            <div className="bg-slate-950/80 border border-slate-800 rounded-lg px-2.5 py-1.5 flex items-center gap-2">
+              <Crosshair className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+              <span className="text-xs text-slate-300 font-semibold truncate">
+                Tombol: <span className="text-emerald-400">{step.buttonName}</span>
+              </span>
+            </div>
+
+            {/* 1. Fungsi Tombol */}
+            <div className="flex items-start gap-2.5 text-xs">
+              <div className="p-1 rounded bg-emerald-500/10 text-emerald-400 shrink-0 mt-0.5">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+              </div>
+              <div className="text-slate-300 leading-relaxed">
+                <strong className="text-slate-100 font-semibold">Fungsi: </strong>
+                {step.functionDesc}
+              </div>
+            </div>
+
+            {/* 2. Kegunaan & Manfaat Taktis */}
+            <div className="flex items-start gap-2.5 text-xs">
+              <div className="p-1 rounded bg-sky-500/10 text-sky-400 shrink-0 mt-0.5">
+                <Lightbulb className="w-3.5 h-3.5" />
+              </div>
+              <div className="text-slate-300 leading-relaxed">
+                <strong className="text-slate-100 font-semibold">Kegunaan: </strong>
+                {step.benefitDesc}
+              </div>
+            </div>
+
+            {/* 3. Pro Tip Box */}
+            <div className="bg-slate-950/90 border border-slate-800/90 rounded-xl p-2.5 flex items-start gap-2">
+              <Sparkles className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
+              <div className="text-[11px] text-slate-400 leading-normal">
+                <span className="font-bold text-slate-300">Tips Cepat: </span>
+                {step.hint}
+              </div>
+            </div>
+
+            {/* Step Progress Dots & Tooltip Toggle */}
+            <div className="flex items-center justify-between pt-1 border-t border-slate-800/80">
+              <div className="flex items-center space-x-1.5">
+                {TOUR_STEPS.map((_, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setCurrentStep(idx)}
+                    className={`h-1.5 rounded-full transition-all ${
+                      idx === currentStep
+                        ? 'w-5 bg-emerald-500'
+                        : idx < currentStep
+                        ? 'w-2 bg-slate-600'
+                        : 'w-2 bg-slate-800'
+                    }`}
+                    title={`Lompat ke langkah ${idx + 1}`}
+                  />
+                ))}
+              </div>
+
+              {/* Hover Tooltip Preference Toggle */}
+              <label className="flex items-center gap-1.5 cursor-pointer text-[10px] text-slate-400 hover:text-slate-300 select-none">
+                <input
+                  type="checkbox"
+                  checked={showTooltips}
+                  onChange={(e) => setShowTooltips(e.target.checked)}
+                  className="w-3.5 h-3.5 rounded border-slate-700 bg-slate-950 text-emerald-500 focus:ring-0 cursor-pointer"
+                />
+                <span>Highlight & Tooltip Aktif</span>
+              </label>
+            </div>
+          </div>
+
+          {/* Footer Navigation Actions */}
+          <div className="p-3.5 px-4 sm:px-5 bg-slate-950 border-t border-slate-800 flex items-center justify-between">
+            <button
+              onClick={handleSkip}
+              className="text-xs font-medium text-slate-400 hover:text-slate-200 px-2.5 py-1.5 rounded-lg hover:bg-slate-850 transition-colors"
+            >
+              Lewati (Skip)
+            </button>
+
+            <div className="flex items-center space-x-2">
+              {currentStep > 0 && (
+                <button
+                  onClick={handlePrev}
+                  className="px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-850 hover:bg-slate-800 text-slate-300 text-xs font-semibold flex items-center gap-1 transition-colors"
+                >
+                  <ChevronLeft className="w-3.5 h-3.5" />
+                  <span>Sebelumnya</span>
+                </button>
+              )}
+
+              <button
+                onClick={handleNext}
+                className={`px-4 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-md transition-all ${
+                  isLast
+                    ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/25'
+                    : 'bg-emerald-600 hover:bg-emerald-500 text-white'
+                }`}
+              >
+                {isLast ? (
+                  <>
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>Mulai Menggambar!</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Lanjut</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       </div>

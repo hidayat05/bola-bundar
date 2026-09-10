@@ -80,7 +80,7 @@ export const DrawingToolbar: React.FC = () => {
   ];
 
   return (
-    <div className="absolute top-3 left-3 sm:top-4 sm:left-4 z-20 flex items-center space-x-1.5 bg-slate-900/95 backdrop-blur-md p-1.5 rounded-xl border border-slate-700/80 shadow-2xl select-none max-w-[calc(100vw-24px)] overflow-x-auto scrollbar-none">
+    <div data-tour="drawing-toolbar" className="absolute top-3 left-3 sm:top-4 sm:left-4 z-20 flex items-center space-x-1.5 bg-slate-900/95 backdrop-blur-md p-1.5 rounded-xl border border-slate-700/80 shadow-2xl select-none max-w-[calc(100vw-24px)] overflow-x-auto scrollbar-none">
       {/* Tool Buttons */}
       <div className="flex items-center space-x-1 pr-1.5 border-r border-slate-700/70">
         {tools.map((t) => {
