@@ -12,6 +12,8 @@ import {
   Square,
   Menu,
   X,
+  Users,
+  User,
 } from 'lucide-react';
 import Konva from 'konva';
 import { useTacticsStore } from '../../store/useTacticsStore';
@@ -34,6 +36,8 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ stageRef }) => {
     pitchSurface,
     showGrid,
     showZones,
+    teamDisplayMode,
+    soloTeamSide,
     homeTeam,
     awayTeam,
     frames,
@@ -44,6 +48,8 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ stageRef }) => {
     setPitchSurface,
     setShowGrid,
     setShowZones,
+    setTeamDisplayMode,
+    setSoloTeamSide,
     resetTactics,
     setIsRecording,
     setIsPlaying,
@@ -181,6 +187,53 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ stageRef }) => {
               Futsal
             </button>
           </div>
+        </div>
+
+        {/* 1 Tim (Solo) vs 2 Tim (Lawan) Toggle Button - Visible on both desktop & mobile */}
+        <div className="bg-slate-950 p-0.5 rounded-lg border border-slate-800 flex text-xs shrink-0 items-center">
+          <button
+            onClick={() => setTeamDisplayMode('both')}
+            className={`px-2 sm:px-2.5 py-1.5 rounded-md font-medium flex items-center gap-1 transition-all ${
+              teamDisplayMode === 'both'
+                ? 'bg-slate-800 text-slate-100 shadow-sm font-semibold'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+            title="Tampilkan 2 Tim (Home vs Away)"
+          >
+            <Users className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">2 Tim</span>
+          </button>
+          <button
+            onClick={() => setTeamDisplayMode('single')}
+            className={`px-2 sm:px-2.5 py-1.5 rounded-md font-medium flex items-center gap-1 transition-all ${
+              teamDisplayMode === 'single'
+                ? 'bg-emerald-600 text-white shadow-sm font-bold ring-1 ring-emerald-400/50'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+            title="Hanya 1 Tim (Solo Shape / Build-up tanpa lawan)"
+          >
+            <User className="w-3.5 h-3.5" />
+            <span>1 Tim</span>
+          </button>
+
+          {teamDisplayMode === 'single' && (
+            <button
+              onClick={() => setSoloTeamSide(soloTeamSide === 'home' ? 'away' : 'home')}
+              className="ml-1 px-1.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-[10px] font-bold text-slate-200 flex items-center gap-1 transition-colors"
+              title="Ganti tim yang tampil solo"
+            >
+              <span
+                className="w-2 h-2 rounded-full"
+                style={{
+                  backgroundColor:
+                    soloTeamSide === 'home'
+                      ? homeTeam.primaryColor
+                      : awayTeam.primaryColor,
+                }}
+              />
+              <span className="hidden sm:inline">{soloTeamSide === 'home' ? 'Home' : 'Away'}</span>
+            </button>
+          )}
         </div>
 
         {/* Center Controls (Desktop & Tablet): View & Pitch Overlays */}
@@ -354,6 +407,39 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ stageRef }) => {
       {/* Mobile Slide-Down Actions Sheet */}
       {mobileMenuOpen && (
         <div className="md:hidden bg-slate-900/98 backdrop-blur-xl border-b border-slate-800 p-4 space-y-4 shadow-2xl z-20 animate-in slide-in-from-top duration-200">
+          {/* Team Display Mode (2 Teams vs 1 Team) */}
+          <div>
+            <label className="text-[10px] uppercase font-bold text-slate-400 block mb-1">
+              Mode Tim (Jumlah Tim di Lapangan)
+            </label>
+            <div className="grid grid-cols-2 gap-1.5 bg-slate-950 p-1 rounded-lg border border-slate-800 text-xs">
+              <button
+                onClick={() => {
+                  setTeamDisplayMode('both');
+                  setMobileMenuOpen(false);
+                }}
+                className={`py-1.5 px-2 rounded-md font-medium flex items-center justify-center gap-1.5 transition-all ${
+                  teamDisplayMode === 'both' ? 'bg-slate-800 text-white font-bold' : 'text-slate-400'
+                }`}
+              >
+                <Users className="w-3.5 h-3.5" />
+                <span>2 Tim (Lawan)</span>
+              </button>
+              <button
+                onClick={() => {
+                  setTeamDisplayMode('single');
+                  setMobileMenuOpen(false);
+                }}
+                className={`py-1.5 px-2 rounded-md font-medium flex items-center justify-center gap-1.5 transition-all ${
+                  teamDisplayMode === 'single' ? 'bg-emerald-600 text-white font-bold' : 'text-slate-400'
+                }`}
+              >
+                <User className="w-3.5 h-3.5" />
+                <span>Hanya 1 Tim (Solo)</span>
+              </button>
+            </div>
+          </div>
+
           {/* Mode & Surface */}
           <div className="grid grid-cols-2 gap-2">
             <div>

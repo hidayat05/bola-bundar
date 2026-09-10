@@ -2,6 +2,7 @@ export type PitchType = 'football' | 'mini-soccer' | 'futsal';
 export type PitchView = 'full' | 'half';
 export type PitchSurface = 'grass' | 'turf' | 'wood' | 'blue';
 export type TeamSide = 'home' | 'away' | 'neutral';
+export type TeamDisplayMode = 'both' | 'single';
 
 export interface PlayerToken {
   id: string;

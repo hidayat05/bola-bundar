@@ -23,6 +23,8 @@ export const TacticalCanvas: React.FC<TacticalCanvasProps> = ({ stageRef }) => {
     pitchSurface,
     showGrid,
     showZones,
+    teamDisplayMode,
+    soloTeamSide,
     homeTeam,
     awayTeam,
     frames,
@@ -89,8 +91,16 @@ export const TacticalCanvas: React.FC<TacticalCanvasProps> = ({ stageRef }) => {
     }
   };
 
+  // Filter players based on teamDisplayMode (both teams vs 1 solo team)
+  const visiblePlayers = currentFrame.players.filter((player) => {
+    if (teamDisplayMode === 'single') {
+      return player.team === soloTeamSide;
+    }
+    return true;
+  });
+
   // Sort players so selected/hovered token renders above others
-  const sortedPlayers = [...currentFrame.players].sort((a, b) => {
+  const sortedPlayers = [...visiblePlayers].sort((a, b) => {
     if (a.id === selectedPlayerId) return 1;
     if (b.id === selectedPlayerId) return -1;
     if (a.id === hoveredPlayerId) return 1;
@@ -126,6 +136,8 @@ export const TacticalCanvas: React.FC<TacticalCanvasProps> = ({ stageRef }) => {
             showZones={showZones}
             homeTeamName={homeTeam.name}
             awayTeamName={awayTeam.name}
+            teamDisplayMode={teamDisplayMode}
+            soloTeamSide={soloTeamSide}
           />
         </Layer>
 

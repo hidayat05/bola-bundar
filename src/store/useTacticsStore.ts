@@ -10,6 +10,7 @@ import {
   TacticalKeyframe,
   TacticsExportData,
   TeamConfig,
+  TeamDisplayMode,
   TeamSide,
 } from '../types/tactics';
 import { generateInitialSquad, getFormationsForPitch } from '../utils/formations';
@@ -20,6 +21,8 @@ interface TacticsState {
   pitchSurface: PitchSurface;
   showGrid: boolean;
   showZones: boolean;
+  teamDisplayMode: TeamDisplayMode; // 'both' | 'single'
+  soloTeamSide: 'home' | 'away';
 
   homeTeam: TeamConfig;
   awayTeam: TeamConfig;
@@ -40,6 +43,8 @@ interface TacticsState {
   setPitchSurface: (surface: PitchSurface) => void;
   setShowGrid: (show: boolean) => void;
   setShowZones: (show: boolean) => void;
+  setTeamDisplayMode: (mode: TeamDisplayMode) => void;
+  setSoloTeamSide: (side: 'home' | 'away') => void;
 
   // Teams
   updateHomeTeam: (updates: Partial<TeamConfig>) => void;
@@ -133,6 +138,8 @@ export const useTacticsStore = create<TacticsState>((set, get) => {
     pitchSurface: 'grass',
     showGrid: false,
     showZones: false,
+    teamDisplayMode: 'both',
+    soloTeamSide: 'home',
 
     homeTeam: DEFAULT_HOME_TEAM,
     awayTeam: DEFAULT_AWAY_TEAM,
@@ -170,6 +177,8 @@ export const useTacticsStore = create<TacticsState>((set, get) => {
     setPitchSurface: (pitchSurface: PitchSurface) => set({ pitchSurface }),
     setShowGrid: (showGrid: boolean) => set({ showGrid }),
     setShowZones: (showZones: boolean) => set({ showZones }),
+    setTeamDisplayMode: (teamDisplayMode: TeamDisplayMode) => set({ teamDisplayMode }),
+    setSoloTeamSide: (soloTeamSide: 'home' | 'away') => set({ soloTeamSide }),
 
     updateHomeTeam: (updates: Partial<TeamConfig>) =>
       set((state) => ({ homeTeam: { ...state.homeTeam, ...updates } })),
