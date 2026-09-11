@@ -19,6 +19,9 @@ import {
   HelpCircle,
   Shirt,
   Circle,
+  Target,
+  ZoomIn,
+  Sparkles,
 } from 'lucide-react';
 
 const ZONE_COLORS = [
@@ -30,6 +33,17 @@ const ZONE_COLORS = [
   { name: 'Orange', color: '#f97316' },
   { name: 'Pink', color: '#f43f5e' },
   { name: 'Blue', color: '#3b82f6' },
+];
+
+const GRID_COLORS = [
+  { name: 'Slate', color: '#94a3b8' },
+  { name: 'White', color: '#ffffff' },
+  { name: 'Cyan', color: '#38bdf8' },
+  { name: 'Amber', color: '#fbbf24' },
+  { name: 'Lime', color: '#84cc16' },
+  { name: 'Red', color: '#ef4444' },
+  { name: 'Pink', color: '#f43f5e' },
+  { name: 'Purple', color: '#a855f7' },
 ];
 import Konva from 'konva';
 import { useShallow } from 'zustand/react/shallow';
@@ -55,6 +69,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({ stageRef, onOpe
     pitchView,
     pitchSurface,
     showGrid,
+    gridColor,
     showZones,
     zoneColor,
     teamDisplayMode,
@@ -69,6 +84,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({ stageRef, onOpe
     setPitchView,
     setPitchSurface,
     setShowGrid,
+    setGridColor,
     setShowZones,
     setZoneColor,
     setTeamDisplayMode,
@@ -78,12 +94,16 @@ export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({ stageRef, onOpe
     setIsRecording,
     setIsPlaying,
     loadProjectData,
+    isSetpieceMode,
+    setIsSetpieceMode,
+    setIsSetpiecePresetsModalOpen,
   } = useTacticsStore(
     useShallow((s) => ({
       pitchType: s.pitchType,
       pitchView: s.pitchView,
       pitchSurface: s.pitchSurface,
       showGrid: s.showGrid,
+      gridColor: s.gridColor,
       showZones: s.showZones,
       zoneColor: s.zoneColor,
       teamDisplayMode: s.teamDisplayMode,
@@ -98,6 +118,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({ stageRef, onOpe
       setPitchView: s.setPitchView,
       setPitchSurface: s.setPitchSurface,
       setShowGrid: s.setShowGrid,
+      setGridColor: s.setGridColor,
       setShowZones: s.setShowZones,
       setZoneColor: s.setZoneColor,
       setTeamDisplayMode: s.setTeamDisplayMode,
@@ -107,12 +128,17 @@ export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({ stageRef, onOpe
       setIsRecording: s.setIsRecording,
       setIsPlaying: s.setIsPlaying,
       loadProjectData: s.loadProjectData,
+      isSetpieceMode: s.isSetpieceMode,
+      setIsSetpieceMode: s.setIsSetpieceMode,
+      setIsSetpiecePresetsModalOpen: s.setIsSetpiecePresetsModalOpen,
     }))
   );
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [zoneColorMenuOpen, setZoneColorMenuOpen] = useState(false);
   const zoneColorMenuRef = useRef<HTMLDivElement>(null);
+  const [gridColorMenuOpen, setGridColorMenuOpen] = useState(false);
+  const gridColorMenuRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const recorderRef = useRef<CanvasVideoRecorder | null>(null);
   const [recordDuration, setRecordDuration] = useState(0);
@@ -135,6 +161,24 @@ export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({ stageRef, onOpe
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [zoneColorMenuOpen]);
+
+  // Close grid color popover when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        gridColorMenuRef.current &&
+        !gridColorMenuRef.current.contains(e.target as Node)
+      ) {
+        setGridColorMenuOpen(false);
+      }
+    };
+    if (gridColorMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [gridColorMenuOpen]);
 
   // Height-aware compact detection
   const [isCompact, setIsCompact] = useState(() => {
@@ -169,8 +213,8 @@ export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({ stageRef, onOpe
         setIsFullscreen(true);
         if (screen.orientation && 'lock' in screen.orientation) {
           try {
-            await (screen.orientation as any).lock('landscape');
-          } catch (_) {
+            await (screen.orientation as unknown as { lock: (orientation: string) => Promise<void> }).lock('landscape');
+          } catch {
             // Ignore lock error on unsupported browsers
           }
         }
@@ -201,6 +245,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({ stageRef, onOpe
       pitchView,
       pitchSurface,
       showGrid,
+      gridColor,
       showZones,
       zoneColor,
       homeTeam,
@@ -396,16 +441,50 @@ export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({ stageRef, onOpe
           </button>
         </div>
 
+        {/* Setpiece Mode Toggle (Desktop & Tablet) */}
+        <Tooltip
+          content={isSetpieceMode ? 'Tutup Asisten Setpiece' : 'Mode Skema Setpiece 🎯'}
+          description="Asisten lingkaran jarak legal bola, box zoom & analisis set-play routines"
+          position="bottom"
+        >
+          <button
+            onClick={() => setIsSetpieceMode(!isSetpieceMode)}
+            className={`px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-lg border text-xs flex items-center gap-1.5 font-bold transition-all ${
+              isSetpieceMode
+                ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-md shadow-amber-500/20 ring-1 ring-amber-400/50'
+                : 'bg-slate-950 border-slate-800 text-slate-300 hover:text-amber-400 hover:border-amber-500/40'
+            }`}
+          >
+            <Target className={`w-3.5 h-3.5 ${isSetpieceMode ? 'text-slate-950' : 'text-amber-400'}`} />
+            <span>Setpiece</span>
+          </button>
+        </Tooltip>
+
+        {/* Setpiece Presets Library Button */}
+        <Tooltip
+          content="Library Preset Setpiece 📚"
+          description="Daftar skema taktik bola mati siap pakai (Corner Tiang 2, Short Corner, Free-kick dummy run)"
+          position="bottom"
+        >
+          <button
+            onClick={() => setIsSetpiecePresetsModalOpen(true)}
+            className="hidden sm:flex px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-lg border text-xs items-center gap-1.5 font-bold transition-all bg-slate-950 border-amber-500/40 text-amber-300 hover:bg-amber-500/10 hover:border-amber-400 shadow-sm"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+            <span className="hidden xl:inline">Preset</span>
+          </button>
+        </Tooltip>
+
         {/* Center Controls (Desktop & Large Screen Only): View & Pitch Overlays */}
         {!isCompact && (
           <div className="flex items-center space-x-2">
-          {/* Full vs Half Pitch Toggle */}
+          {/* Full vs Half vs 1/3 Box Pitch Toggle */}
           <div className="bg-slate-950 p-0.5 rounded-lg border border-slate-800 flex text-xs">
             <button
               onClick={() => setPitchView('full')}
               className={`px-2.5 py-1.5 rounded-md font-medium flex items-center gap-1 transition-all ${
                 pitchView === 'full'
-                  ? 'bg-slate-800 text-slate-100'
+                  ? 'bg-slate-800 text-slate-100 font-semibold'
                   : 'text-slate-400 hover:text-slate-200'
               }`}
               title="Full Pitch"
@@ -417,13 +496,25 @@ export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({ stageRef, onOpe
               onClick={() => setPitchView('half')}
               className={`px-2.5 py-1.5 rounded-md font-medium flex items-center gap-1 transition-all ${
                 pitchView === 'half'
-                  ? 'bg-slate-800 text-slate-100'
+                  ? 'bg-slate-800 text-slate-100 font-semibold'
                   : 'text-slate-400 hover:text-slate-200'
               }`}
-              title="Half Pitch / Set Piece Mode"
+              title="Half Pitch Mode"
             >
               <Minimize2 className="w-3.5 h-3.5" />
               <span>Half</span>
+            </button>
+            <button
+              onClick={() => setPitchView('third')}
+              className={`px-2.5 py-1.5 rounded-md font-medium flex items-center gap-1 transition-all ${
+                pitchView === 'third'
+                  ? 'bg-emerald-600 text-white font-bold shadow-sm ring-1 ring-emerald-400/40'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+              title="Final-Third / Box Zoom (Area 1/3 Lapangan & Kotak Penalti)"
+            >
+              <ZoomIn className="w-3.5 h-3.5" />
+              <span>1/3 Box</span>
             </button>
           </div>
 
@@ -549,19 +640,101 @@ export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({ stageRef, onOpe
             )}
           </div>
 
-          {/* Grid */}
-          <button
-            onClick={() => setShowGrid(!showGrid)}
-            className={`p-1.5 px-2 rounded-lg border text-xs flex items-center gap-1.5 transition-colors ${
-              showGrid
-                ? 'bg-blue-500/20 border-blue-500/40 text-blue-300'
-                : 'bg-slate-800/60 border-slate-700 text-slate-400 hover:text-slate-200'
-            }`}
-            title="Toggle Pitch Grid"
-          >
-            <Grid className="w-3.5 h-3.5" />
-            <span className="text-[11px]">Grid</span>
-          </button>
+          {/* Grid with Integrated Color Changer */}
+          <div className="relative flex items-center">
+            <button
+              onClick={() => setShowGrid(!showGrid)}
+              className={`p-1.5 px-2 text-xs flex items-center gap-1.5 transition-colors border ${
+                showGrid
+                  ? 'rounded-l-lg border-r-0 bg-slate-800 border-slate-700 text-slate-100 font-medium'
+                  : 'rounded-lg bg-slate-800/60 border-slate-700 text-slate-400 hover:text-slate-200'
+              }`}
+              title="Toggle Pitch Grid"
+            >
+              <Grid
+                className="w-3.5 h-3.5"
+                style={{ color: showGrid ? gridColor : undefined }}
+              />
+              <span className="text-[11px]">Grid</span>
+            </button>
+
+            {showGrid && (
+              <div className="relative" ref={gridColorMenuRef}>
+                <button
+                  type="button"
+                  onClick={() => setGridColorMenuOpen(!gridColorMenuOpen)}
+                  className="p-1.5 px-1.5 rounded-r-lg border border-slate-700 bg-slate-800/90 hover:bg-slate-700 text-xs flex items-center gap-1 transition-colors"
+                  title="Ganti Warna Grid"
+                >
+                  <span
+                    className="w-3 h-3 rounded-full border border-white/60 shadow-sm"
+                    style={{ backgroundColor: gridColor }}
+                  />
+                  <ChevronDown className="w-3 h-3 text-slate-400" />
+                </button>
+
+                {/* Color Palette Popover */}
+                {gridColorMenuOpen && (
+                  <div className="absolute right-0 top-full mt-2 w-52 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-3 z-50 animate-in fade-in zoom-in-95 duration-100">
+                    <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-800 text-xs text-slate-300 font-medium">
+                      <div className="flex items-center gap-1.5">
+                        <Palette className="w-3.5 h-3.5 text-blue-400" />
+                        <span>Warna Grid</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setGridColorMenuOpen(false)}
+                        className="text-slate-400 hover:text-slate-200 text-xs px-1 rounded"
+                      >
+                        ✕
+                      </button>
+                    </div>
+
+                    {/* Preset Swatches */}
+                    <div className="grid grid-cols-4 gap-1.5 mb-3">
+                      {GRID_COLORS.map((c) => (
+                        <button
+                          key={c.color}
+                          type="button"
+                          onClick={() => setGridColor(c.color)}
+                          className={`flex flex-col items-center p-1.5 rounded-lg border transition-all ${
+                            gridColor.toLowerCase() === c.color.toLowerCase()
+                              ? 'border-white bg-slate-800 shadow-md scale-105'
+                              : 'border-transparent hover:bg-slate-800/60'
+                          }`}
+                          title={c.name}
+                        >
+                          <span
+                            className="w-5 h-5 rounded-full border border-white/30 shadow-inner"
+                            style={{ backgroundColor: c.color }}
+                          />
+                          <span className="text-[10px] text-slate-300 mt-1 font-medium truncate w-full text-center">
+                            {c.name}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Custom Hex Color Picker */}
+                    <div className="pt-2 border-t border-slate-800 flex items-center justify-between gap-2">
+                      <span className="text-[11px] text-slate-400">Custom:</span>
+                      <label className="flex items-center gap-2 bg-slate-950 border border-slate-800 rounded-lg px-2 py-1 cursor-pointer hover:border-slate-700">
+                        <input
+                          type="color"
+                          value={gridColor}
+                          onChange={(e) => setGridColor(e.target.value)}
+                          className="w-4 h-4 rounded cursor-pointer bg-transparent border-0 p-0"
+                        />
+                        <span className="text-[11px] font-mono text-slate-200 uppercase font-semibold">
+                          {gridColor}
+                        </span>
+                      </label>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
         )}
 
@@ -752,20 +925,65 @@ export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({ stageRef, onOpe
             </div>
           </div>
 
+          {/* Setpiece Mode Card */}
+          <div>
+            <label className="text-[10px] uppercase font-bold text-slate-400 block mb-1">
+              Mode Skema Setpiece (Set-Play Routines)
+            </label>
+            <button
+              onClick={() => {
+                setIsSetpieceMode(!isSetpieceMode);
+                setMobileMenuOpen(false);
+              }}
+              className={`w-full py-2 px-3 rounded-xl border text-xs font-bold flex items-center justify-between transition-all ${
+                isSetpieceMode
+                  ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-md shadow-amber-500/20'
+                  : 'bg-slate-950 border-slate-800 text-slate-300 hover:text-amber-400 hover:border-amber-500/40'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <Target className={`w-4 h-4 ${isSetpieceMode ? 'text-slate-950' : 'text-amber-400'}`} />
+                <span>Asisten Setpiece & Barrier Jarak</span>
+              </div>
+              <span className={`text-[10px] px-2 py-0.5 rounded font-bold ${
+                isSetpieceMode ? 'bg-slate-950 text-amber-300' : 'bg-slate-800 text-slate-400'
+              }`}>
+                {isSetpieceMode ? 'AKTIF' : 'NONAKTIF'}
+              </span>
+            </button>
+
+            {/* Setpiece Presets Library Mobile Button */}
+            <button
+              onClick={() => {
+                setIsSetpiecePresetsModalOpen(true);
+                setMobileMenuOpen(false);
+              }}
+              className="w-full mt-1.5 py-2 px-3 rounded-xl border border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 text-xs font-bold flex items-center justify-between transition-all"
+            >
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-amber-400" />
+                <span>Library Preset Setpiece</span>
+              </div>
+              <span className="text-[10px] bg-amber-500/30 px-2 py-0.5 rounded font-bold text-amber-200">
+                Pilih Taktik 📚
+              </span>
+            </button>
+          </div>
+
           {/* Mode & Surface */}
           <div className="grid grid-cols-2 gap-2">
             <div>
               <label className="text-[10px] uppercase font-bold text-slate-400 block mb-1">
-                Pitch Mode
+                Pitch Mode / Zoom
               </label>
-              <div className="grid grid-cols-2 gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800 text-xs">
+              <div className="grid grid-cols-3 gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800 text-xs">
                 <button
                   onClick={() => {
                     setPitchView('full');
                     setMobileMenuOpen(false);
                   }}
-                  className={`py-1 rounded font-medium ${
-                    pitchView === 'full' ? 'bg-slate-800 text-white' : 'text-slate-400'
+                  className={`py-1 rounded font-medium text-center ${
+                    pitchView === 'full' ? 'bg-slate-800 text-white font-bold' : 'text-slate-400'
                   }`}
                 >
                   Full
@@ -775,11 +993,22 @@ export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({ stageRef, onOpe
                     setPitchView('half');
                     setMobileMenuOpen(false);
                   }}
-                  className={`py-1 rounded font-medium ${
-                    pitchView === 'half' ? 'bg-slate-800 text-white' : 'text-slate-400'
+                  className={`py-1 rounded font-medium text-center ${
+                    pitchView === 'half' ? 'bg-slate-800 text-white font-bold' : 'text-slate-400'
                   }`}
                 >
                   Half
+                </button>
+                <button
+                  onClick={() => {
+                    setPitchView('third');
+                    setMobileMenuOpen(false);
+                  }}
+                  className={`py-1 rounded font-bold text-center ${
+                    pitchView === 'third' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-400'
+                  }`}
+                >
+                  1/3 Box
                 </button>
               </div>
             </div>
@@ -831,7 +1060,10 @@ export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({ stageRef, onOpe
                     : 'bg-slate-950 border-slate-800 text-slate-400'
                 }`}
               >
-                <Grid className="w-3.5 h-3.5" />
+                <Grid
+                  className="w-3.5 h-3.5"
+                  style={{ color: showGrid ? gridColor : undefined }}
+                />
                 <span>Grid {showGrid ? 'ON' : 'OFF'}</span>
               </button>
             </div>
@@ -872,6 +1104,50 @@ export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({ stageRef, onOpe
                       type="color"
                       value={zoneColor}
                       onChange={(e) => setZoneColor(e.target.value)}
+                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                    />
+                    <Palette className="w-3.5 h-3.5 text-slate-300 pointer-events-none" />
+                  </label>
+                </div>
+              </div>
+            )}
+
+            {/* Mobile Grid Color Picker (visible when Grid is active) */}
+            {showGrid && (
+              <div className="bg-slate-950/90 border border-slate-800/90 rounded-xl p-2.5 space-y-2">
+                <div className="flex items-center justify-between text-[11px] text-slate-400">
+                  <div className="flex items-center gap-1.5">
+                    <Palette className="w-3.5 h-3.5" style={{ color: gridColor }} />
+                    <span className="text-slate-200 font-semibold">Grid Color:</span>
+                  </div>
+                  <span className="font-mono uppercase text-slate-300 text-[10px] font-bold">
+                    {gridColor}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+                  {GRID_COLORS.map((c) => (
+                    <button
+                      key={c.color}
+                      type="button"
+                      onClick={() => setGridColor(c.color)}
+                      className={`flex-shrink-0 w-7 h-7 rounded-full border transition-transform ${
+                        gridColor.toLowerCase() === c.color.toLowerCase()
+                          ? 'border-white scale-110 ring-2 ring-white/40 shadow-md'
+                          : 'border-white/20 opacity-80'
+                      }`}
+                      style={{ backgroundColor: c.color }}
+                      title={c.name}
+                    />
+                  ))}
+                  {/* Custom color input */}
+                  <label
+                    className="flex-shrink-0 relative w-7 h-7 rounded-full border border-slate-700 bg-slate-800 flex items-center justify-center cursor-pointer overflow-hidden hover:border-slate-500"
+                    title="Custom Color"
+                  >
+                    <input
+                      type="color"
+                      value={gridColor}
+                      onChange={(e) => setGridColor(e.target.value)}
                       className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
                     />
                     <Palette className="w-3.5 h-3.5 text-slate-300 pointer-events-none" />

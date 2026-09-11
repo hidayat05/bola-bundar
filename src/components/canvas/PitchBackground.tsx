@@ -1,7 +1,9 @@
 import React from 'react';
-import { Group, Rect, Line, Circle, Arc, Text } from 'react-konva';
+import { Group, Rect, Line, Circle, Arc, Text, Shape } from 'react-konva';
 import { PitchSurface, PitchType, PitchView } from '../../types/tactics';
 import { PitchLayout } from '../../utils/pitchGeometry';
+import { getSportPitchMarkings } from '../../utils/setpieceUtils';
+import { calculateTacticalZones } from '../../utils/pitchConfig';
 
 interface PitchBackgroundProps {
   layout: PitchLayout;
@@ -9,6 +11,7 @@ interface PitchBackgroundProps {
   pitchView: PitchView;
   pitchSurface: PitchSurface;
   showGrid: boolean;
+  gridColor?: string;
   showZones: boolean;
   zoneColor?: string;
   homeTeamName: string;
@@ -17,12 +20,235 @@ interface PitchBackgroundProps {
   soloTeamSide?: 'home' | 'away';
 }
 
+interface PenaltyArcHelperProps {
+  boxLineX: number;
+  spotY: number;
+  radius: number;
+  side: 'left' | 'right';
+  pitchType: PitchType;
+  lineColor: string;
+  lineWidth: number;
+  lineOpacity: number;
+}
+
+/**
+ * Renders the D-arc (Penalty Arc) outside the penalty area.
+ * Radius is strictly scaled to the official pitch ratio (9.15m for 11v11, 7.0m for Mini Soccer),
+ * guaranteeing that both ends meet the vertical penalty box edge precisely without overlapping inside.
+ */
+const PenaltyArcHelper: React.FC<PenaltyArcHelperProps> = ({
+  boxLineX,
+  spotY,
+  radius,
+  side,
+  pitchType,
+  lineColor,
+  lineWidth,
+  lineOpacity,
+}) => {
+  if (pitchType === 'futsal') return null; // Futsal has no D-arc
+  if (radius <= 1) return null;
+
+  // Real-world physical ratio: distance from penalty mark to penalty area line is 5.5m (11v11) or 4.0m (Mini Soccer)
+  const dRatio = pitchType === 'mini-soccer' ? 4.0 / 7.0 : 5.5 / 9.15;
+  const d = radius * dRatio;
+
+  // Center of the circle (penalty spot):
+  // If side === 'left': penalty box is to the right, arc curves to the left, spot is at boxLineX + d
+  // If side === 'right': penalty box is to the left, arc curves to the right, spot is at boxLineX - d
+  const spotX = side === 'left' ? boxLineX + d : boxLineX - d;
+
+  // Exact angle alpha where circle of radius R intersects vertical line at distance d from center:
+  // cos(alpha) = d / radius = dRatio
+  const cosAlpha = Math.min(0.999, Math.max(0.001, dRatio));
+  const alphaDeg = (Math.acos(cosAlpha) * 180) / Math.PI;
+
+  const rotation = side === 'left' ? 180 - alphaDeg : -alphaDeg;
+  const sweepAngle = 2 * alphaDeg;
+
+  return (
+    <Arc
+      x={spotX}
+      y={spotY}
+      innerRadius={radius}
+      outerRadius={radius}
+      angle={sweepAngle}
+      rotation={rotation}
+      stroke={lineColor}
+      strokeWidth={lineWidth}
+      opacity={lineOpacity}
+      lineCap="butt"
+      listening={false}
+    />
+  );
+};
+
+interface FutsalPenaltyAreaProps {
+  side: 'left' | 'right';
+  goalLineX: number;
+  pitchY: number;
+  pitchH: number;
+  goalWidth: number;
+  radiusX: number; // 6m in pixels X
+  radiusY: number; // 6m in pixels Y
+  lineColor: string;
+  lineWidth: number;
+  lineOpacity: number;
+}
+
+/**
+ * Official FIFA Futsal 6-meter Penalty Area:
+ * Formed by two quarter-circles of radius 6m radiating from the outer edge of each goalpost,
+ * connected by a 3m line parallel to the goal line between the posts.
+ */
+const FutsalPenaltyArea: React.FC<FutsalPenaltyAreaProps> = ({
+  side,
+  goalLineX,
+  pitchY,
+  pitchH,
+  goalWidth,
+  radiusX,
+  radiusY,
+  lineColor,
+  lineWidth,
+  lineOpacity,
+}) => {
+  const centerY = pitchY + pitchH / 2;
+  const topPostY = centerY - goalWidth / 2;
+  const btmPostY = centerY + goalWidth / 2;
+
+  return (
+    <Shape
+      sceneFunc={(context, shape) => {
+        context.beginPath();
+        if (side === 'left') {
+          // Top quarter circle from goal line down to 6m line
+          context.ellipse(goalLineX, topPostY, radiusX, radiusY, 0, -Math.PI / 2, 0, false);
+          // 3m straight line connecting posts at 6m depth
+          context.lineTo(goalLineX + radiusX, btmPostY);
+          // Bottom quarter circle from 6m line back to goal line
+          context.ellipse(goalLineX, btmPostY, radiusX, radiusY, 0, 0, Math.PI / 2, false);
+        } else {
+          // Right goal
+          // Top quarter circle radiating to the left
+          context.ellipse(goalLineX, topPostY, radiusX, radiusY, 0, -Math.PI / 2, Math.PI, true);
+          // 3m straight line connecting posts at 6m depth
+          context.lineTo(goalLineX - radiusX, btmPostY);
+          // Bottom quarter circle radiating back to goal line
+          context.ellipse(goalLineX, btmPostY, radiusX, radiusY, 0, Math.PI, Math.PI / 2, true);
+        }
+        context.fillStrokeShape(shape);
+      }}
+      stroke={lineColor}
+      strokeWidth={lineWidth}
+      opacity={lineOpacity}
+      listening={false}
+    />
+  );
+};
+
+interface GoalFrameProps {
+  side: 'left' | 'right';
+  goalLineX: number;
+  pitchY: number;
+  pitchH: number;
+  goalWidth: number;
+  goalDepth: number;
+  lineWidth: number;
+}
+
+/**
+ * Renders physical goal frame (posts & net) strictly proportioned to sport standards:
+ * - Sepak Bola (11v11): 7.32m width x 2.44m depth
+ * - Mini Soccer: 5.0m width x 1.8m depth
+ * - Futsal: 3.0m width x 1.0m depth
+ */
+const GoalFrame: React.FC<GoalFrameProps> = ({
+  side,
+  goalLineX,
+  pitchY,
+  pitchH,
+  goalWidth,
+  goalDepth,
+  lineWidth,
+}) => {
+  const topPostY = pitchY + (pitchH - goalWidth) / 2;
+  const btmPostY = topPostY + goalWidth;
+  const netX = side === 'left' ? goalLineX - goalDepth : goalLineX;
+  const postRadius = Math.max(2.5, lineWidth * 1.1);
+
+  // Subtle internal net gridlines
+  const netGridLines = [];
+  const horizSteps = 3;
+  for (let i = 1; i < horizSteps; i++) {
+    const yLine = topPostY + (goalWidth * i) / horizSteps;
+    netGridLines.push(
+      <Line
+        key={`net-h-${i}`}
+        points={[netX, yLine, netX + goalDepth, yLine]}
+        stroke="rgba(255, 255, 255, 0.22)"
+        strokeWidth={1}
+        listening={false}
+      />
+    );
+  }
+  const vertSteps = Math.max(2, Math.round(goalDepth / 6));
+  for (let i = 1; i < vertSteps; i++) {
+    const xLine = netX + (goalDepth * i) / vertSteps;
+    netGridLines.push(
+      <Line
+        key={`net-v-${i}`}
+        points={[xLine, topPostY, xLine, btmPostY]}
+        stroke="rgba(255, 255, 255, 0.18)"
+        strokeWidth={1}
+        listening={false}
+      />
+    );
+  }
+
+  return (
+    <Group listening={false}>
+      {/* Translucent net back mesh */}
+      <Rect
+        x={netX}
+        y={topPostY}
+        width={goalDepth}
+        height={goalWidth}
+        fill="rgba(255, 255, 255, 0.12)"
+        stroke="rgba(255, 255, 255, 0.75)"
+        strokeWidth={1.5}
+        cornerRadius={side === 'left' ? [4, 0, 0, 4] : [0, 4, 4, 0]}
+      />
+      {/* Net gridlines */}
+      {netGridLines}
+      {/* Physical Goal Posts on the Goal Line */}
+      <Circle
+        x={goalLineX}
+        y={topPostY}
+        radius={postRadius}
+        fill="#ffffff"
+        stroke="#1e293b"
+        strokeWidth={1}
+      />
+      <Circle
+        x={goalLineX}
+        y={btmPostY}
+        radius={postRadius}
+        fill="#ffffff"
+        stroke="#1e293b"
+        strokeWidth={1}
+      />
+    </Group>
+  );
+};
+
 export const PitchBackground: React.FC<PitchBackgroundProps> = React.memo(({
   layout,
   pitchType,
   pitchView,
   pitchSurface,
   showGrid,
+  gridColor = '#94a3b8',
   showZones,
   zoneColor = '#fbbf24',
   homeTeamName,
@@ -37,7 +263,7 @@ export const PitchBackground: React.FC<PitchBackgroundProps> = React.memo(({
   let baseColor = '#1f6f38';
   let stripeColor = '#247a3e';
   let lineColor = '#ffffff';
-  let lineOpacity = 0.85;
+  const lineOpacity = 0.85;
   let hasStripes = true;
 
   if (pitchSurface === 'full-green') {
@@ -57,20 +283,20 @@ export const PitchBackground: React.FC<PitchBackgroundProps> = React.memo(({
   }
 
   const lineWidth = Math.max(1.5, Math.round(w * 0.003));
-  const centerRadius = pitchType === 'futsal' ? h * 0.15 : h * 0.18;
-  const penaltyBoxDepth =
-    pitchType === 'futsal' ? w * 0.15 : pitchType === 'mini-soccer' ? w * 0.2 : w * 0.165;
-  const penaltyBoxHeight =
-    pitchType === 'futsal' ? h * 0.5 : pitchType === 'mini-soccer' ? h * 0.65 : h * 0.6;
-  const goalAreaDepth = w * 0.055;
-  const goalAreaHeight = h * 0.3;
-  const penaltySpotDist =
-    pitchType === 'futsal' ? w * 0.15 : pitchType === 'mini-soccer' ? w * 0.15 : w * 0.11;
-  const secondPenaltyDist = w * 0.25; // Futsal 10m mark
-  const cornerArcRadius = Math.max(8, w * 0.02);
+  const markings = getSportPitchMarkings(pitchType, pitchView, w, h);
+  const futsalRadiusY = h * (6.0 / 20.0);
 
-  // Mowed lawn stripes (vertical strips)
-  const stripeCount = pitchType === 'futsal' ? 8 : 12;
+  // Mowed lawn stripes (vertical strips proportional to physical pitch length)
+  const stripeCount =
+    pitchView === 'third'
+      ? (pitchType === 'futsal' ? 2 : pitchType === 'mini-soccer' ? 3 : 4)
+      : pitchView === 'half'
+      ? (pitchType === 'futsal' ? 4 : pitchType === 'mini-soccer' ? 4 : 6)
+      : pitchType === 'futsal'
+      ? 6
+      : pitchType === 'mini-soccer'
+      ? 8
+      : 12;
   const stripeW = w / stripeCount;
   const stripes = [];
   if (hasStripes) {
@@ -147,7 +373,7 @@ export const PitchBackground: React.FC<PitchBackgroundProps> = React.memo(({
           <Circle
             x={x + w / 2}
             y={y + h / 2}
-            radius={centerRadius}
+            radius={markings.centerRadius}
             stroke={lineColor}
             strokeWidth={lineWidth}
             opacity={lineOpacity}
@@ -160,31 +386,132 @@ export const PitchBackground: React.FC<PitchBackgroundProps> = React.memo(({
             opacity={lineOpacity}
           />
 
-          {/* Left Penalty Area */}
-          <Rect
-            x={x}
-            y={y + (h - penaltyBoxHeight) / 2}
-            width={penaltyBoxDepth}
-            height={penaltyBoxHeight}
-            stroke={lineColor}
-            strokeWidth={lineWidth}
-            opacity={lineOpacity}
-          />
+          {/* Penalty Areas & Goals */}
+          {markings.isFutsalPenaltyArea ? (
+            <>
+              {/* Futsal Left Penalty Area (6m D-shape) */}
+              <FutsalPenaltyArea
+                side="left"
+                goalLineX={x}
+                pitchY={y}
+                pitchH={h}
+                goalWidth={markings.goalWidth}
+                radiusX={markings.penaltySpotDist}
+                radiusY={futsalRadiusY}
+                lineColor={lineColor}
+                lineWidth={lineWidth}
+                lineOpacity={lineOpacity}
+              />
 
-          {/* Right Penalty Area */}
-          <Rect
-            x={x + w - penaltyBoxDepth}
-            y={y + (h - penaltyBoxHeight) / 2}
-            width={penaltyBoxDepth}
-            height={penaltyBoxHeight}
-            stroke={lineColor}
-            strokeWidth={lineWidth}
-            opacity={lineOpacity}
-          />
+              {/* Futsal Right Penalty Area (6m D-shape) */}
+              <FutsalPenaltyArea
+                side="right"
+                goalLineX={x + w}
+                pitchY={y}
+                pitchH={h}
+                goalWidth={markings.goalWidth}
+                radiusX={markings.penaltySpotDist}
+                radiusY={futsalRadiusY}
+                lineColor={lineColor}
+                lineWidth={lineWidth}
+                lineOpacity={lineOpacity}
+              />
+
+              {/* Futsal Left 10m Second Penalty Mark */}
+              <Circle
+                x={x + markings.secondPenaltyDist}
+                y={y + h / 2}
+                radius={lineWidth * 1.3}
+                fill={lineColor}
+                opacity={lineOpacity}
+              />
+
+              {/* Futsal Right 10m Second Penalty Mark */}
+              <Circle
+                x={x + w - markings.secondPenaltyDist}
+                y={y + h / 2}
+                radius={lineWidth * 1.3}
+                fill={lineColor}
+                opacity={lineOpacity}
+              />
+            </>
+          ) : (
+            <>
+              {/* Left Penalty Area */}
+              <Rect
+                x={x}
+                y={y + (h - markings.penaltyBoxWidth) / 2}
+                width={markings.penaltyBoxDepth}
+                height={markings.penaltyBoxWidth}
+                stroke={lineColor}
+                strokeWidth={lineWidth}
+                opacity={lineOpacity}
+              />
+
+              {/* Right Penalty Area */}
+              <Rect
+                x={x + w - markings.penaltyBoxDepth}
+                y={y + (h - markings.penaltyBoxWidth) / 2}
+                width={markings.penaltyBoxDepth}
+                height={markings.penaltyBoxWidth}
+                stroke={lineColor}
+                strokeWidth={lineWidth}
+                opacity={lineOpacity}
+              />
+
+              {/* Left & Right 6-yard Goal Area */}
+              {markings.hasGoalArea && (
+                <>
+                  <Rect
+                    x={x}
+                    y={y + (h - markings.goalAreaWidth) / 2}
+                    width={markings.goalAreaDepth}
+                    height={markings.goalAreaWidth}
+                    stroke={lineColor}
+                    strokeWidth={lineWidth}
+                    opacity={lineOpacity}
+                  />
+                  <Rect
+                    x={x + w - markings.goalAreaDepth}
+                    y={y + (h - markings.goalAreaWidth) / 2}
+                    width={markings.goalAreaDepth}
+                    height={markings.goalAreaWidth}
+                    stroke={lineColor}
+                    strokeWidth={lineWidth}
+                    opacity={lineOpacity}
+                  />
+                </>
+              )}
+
+              {/* Left Penalty Arc (D) */}
+              <PenaltyArcHelper
+                boxLineX={x + markings.penaltyBoxDepth}
+                spotY={y + h / 2}
+                radius={markings.centerRadius}
+                side="right"
+                pitchType={pitchType}
+                lineColor={lineColor}
+                lineWidth={lineWidth}
+                lineOpacity={lineOpacity}
+              />
+
+              {/* Right Penalty Arc (D) */}
+              <PenaltyArcHelper
+                boxLineX={x + w - markings.penaltyBoxDepth}
+                spotY={y + h / 2}
+                radius={markings.centerRadius}
+                side="left"
+                pitchType={pitchType}
+                lineColor={lineColor}
+                lineWidth={lineWidth}
+                lineOpacity={lineOpacity}
+              />
+            </>
+          )}
 
           {/* Left Penalty Spot */}
           <Circle
-            x={x + penaltySpotDist}
+            x={x + markings.penaltySpotDist}
             y={y + h / 2}
             radius={lineWidth * 1.4}
             fill={lineColor}
@@ -193,92 +520,41 @@ export const PitchBackground: React.FC<PitchBackgroundProps> = React.memo(({
 
           {/* Right Penalty Spot */}
           <Circle
-            x={x + w - penaltySpotDist}
+            x={x + w - markings.penaltySpotDist}
             y={y + h / 2}
             radius={lineWidth * 1.4}
             fill={lineColor}
             opacity={lineOpacity}
           />
 
-          {/* Football/Mini-Soccer specific: Goal areas (6 yard box) & Penalty Arcs (D) */}
-          {pitchType !== 'futsal' && (
-            <>
-              {/* Left 6-yard Goal Area */}
-              <Rect
-                x={x}
-                y={y + (h - goalAreaHeight) / 2}
-                width={goalAreaDepth}
-                height={goalAreaHeight}
-                stroke={lineColor}
-                strokeWidth={lineWidth}
-                opacity={lineOpacity}
-              />
+          {/* Left Goal Frame */}
+          <GoalFrame
+            side="left"
+            goalLineX={x}
+            pitchY={y}
+            pitchH={h}
+            goalWidth={markings.goalWidth}
+            goalDepth={markings.goalDepth}
+            lineWidth={lineWidth}
+          />
 
-              {/* Right 6-yard Goal Area */}
-              <Rect
-                x={x + w - goalAreaDepth}
-                y={y + (h - goalAreaHeight) / 2}
-                width={goalAreaDepth}
-                height={goalAreaHeight}
-                stroke={lineColor}
-                strokeWidth={lineWidth}
-                opacity={lineOpacity}
-              />
-
-              {/* Left Penalty Arc (D) */}
-              <Arc
-                x={x + penaltySpotDist}
-                y={y + h / 2}
-                innerRadius={centerRadius}
-                outerRadius={centerRadius}
-                angle={100}
-                rotation={-50}
-                stroke={lineColor}
-                strokeWidth={lineWidth}
-                opacity={lineOpacity}
-              />
-
-              {/* Right Penalty Arc (D) */}
-              <Arc
-                x={x + w - penaltySpotDist}
-                y={y + h / 2}
-                innerRadius={centerRadius}
-                outerRadius={centerRadius}
-                angle={100}
-                rotation={130}
-                stroke={lineColor}
-                strokeWidth={lineWidth}
-                opacity={lineOpacity}
-              />
-            </>
-          )}
-
-          {/* Futsal Specific: 10m Second Penalty Marks */}
-          {pitchType === 'futsal' && (
-            <>
-              <Circle
-                x={x + secondPenaltyDist}
-                y={y + h / 2}
-                radius={lineWidth * 1.2}
-                fill={lineColor}
-                opacity={lineOpacity}
-              />
-              <Circle
-                x={x + w - secondPenaltyDist}
-                y={y + h / 2}
-                radius={lineWidth * 1.2}
-                fill={lineColor}
-                opacity={lineOpacity}
-              />
-            </>
-          )}
+          {/* Right Goal Frame */}
+          <GoalFrame
+            side="right"
+            goalLineX={x + w}
+            pitchY={y}
+            pitchH={h}
+            goalWidth={markings.goalWidth}
+            goalDepth={markings.goalDepth}
+            lineWidth={lineWidth}
+          />
 
           {/* Corner Arcs */}
           <Arc
             x={x}
             y={y}
-            innerRadius={cornerArcRadius}
-            outerRadius={cornerArcRadius}
+            innerRadius={markings.cornerArcRadius}
+            outerRadius={markings.cornerArcRadius}
             angle={90}
             rotation={0}
             stroke={lineColor}
@@ -288,8 +564,8 @@ export const PitchBackground: React.FC<PitchBackgroundProps> = React.memo(({
           <Arc
             x={x}
             y={y + h}
-            innerRadius={cornerArcRadius}
-            outerRadius={cornerArcRadius}
+            innerRadius={markings.cornerArcRadius}
+            outerRadius={markings.cornerArcRadius}
             angle={90}
             rotation={270}
             stroke={lineColor}
@@ -299,8 +575,8 @@ export const PitchBackground: React.FC<PitchBackgroundProps> = React.memo(({
           <Arc
             x={x + w}
             y={y}
-            innerRadius={cornerArcRadius}
-            outerRadius={cornerArcRadius}
+            innerRadius={markings.cornerArcRadius}
+            outerRadius={markings.cornerArcRadius}
             angle={90}
             rotation={90}
             stroke={lineColor}
@@ -310,8 +586,119 @@ export const PitchBackground: React.FC<PitchBackgroundProps> = React.memo(({
           <Arc
             x={x + w}
             y={y + h}
-            innerRadius={cornerArcRadius}
-            outerRadius={cornerArcRadius}
+            innerRadius={markings.cornerArcRadius}
+            outerRadius={markings.cornerArcRadius}
+            angle={90}
+            rotation={180}
+            stroke={lineColor}
+            strokeWidth={lineWidth}
+            opacity={lineOpacity}
+          />
+        </>
+      ) : pitchView === 'third' ? (
+        /* Final-Third (Box Zoom) Mode Markings */
+        <>
+          {/* Left Final-Third Boundary Line */}
+          <Line
+            points={[x, y, x, y + h]}
+            stroke={lineColor}
+            strokeWidth={lineWidth}
+            opacity={lineOpacity}
+          />
+
+          {/* Penalty Area */}
+          {markings.isFutsalPenaltyArea ? (
+            <>
+              {/* Futsal Right Penalty Area (6m D-shape) */}
+              <FutsalPenaltyArea
+                side="right"
+                goalLineX={x + w}
+                pitchY={y}
+                pitchH={h}
+                goalWidth={markings.goalWidth}
+                radiusX={markings.penaltySpotDist}
+                radiusY={futsalRadiusY}
+                lineColor={lineColor}
+                lineWidth={lineWidth}
+                lineOpacity={lineOpacity}
+              />
+              {/* Futsal 10m Second Penalty Mark (if within final third view) */}
+              {x + w - markings.secondPenaltyDist >= x && (
+                <Circle
+                  x={x + w - markings.secondPenaltyDist}
+                  y={y + h / 2}
+                  radius={lineWidth * 1.3}
+                  fill={lineColor}
+                  opacity={lineOpacity}
+                />
+              )}
+            </>
+          ) : (
+            <>
+              {/* Penalty Box (18-yard box) */}
+              <Rect
+                x={x + w - markings.penaltyBoxDepth}
+                y={y + (h - markings.penaltyBoxWidth) / 2}
+                width={markings.penaltyBoxDepth}
+                height={markings.penaltyBoxWidth}
+                stroke={lineColor}
+                strokeWidth={lineWidth}
+                opacity={lineOpacity}
+              />
+
+              {/* 6-yard Goal Area */}
+              {markings.hasGoalArea && (
+                <Rect
+                  x={x + w - markings.goalAreaDepth}
+                  y={y + (h - markings.goalAreaWidth) / 2}
+                  width={markings.goalAreaDepth}
+                  height={markings.goalAreaWidth}
+                  stroke={lineColor}
+                  strokeWidth={lineWidth}
+                  opacity={lineOpacity}
+                />
+              )}
+
+              {/* Penalty Arc (D) */}
+              <PenaltyArcHelper
+                boxLineX={x + w - markings.penaltyBoxDepth}
+                spotY={y + h / 2}
+                radius={markings.centerRadius}
+                side="left"
+                pitchType={pitchType}
+                lineColor={lineColor}
+                lineWidth={lineWidth}
+                lineOpacity={lineOpacity}
+              />
+            </>
+          )}
+
+          {/* Penalty Spot */}
+          <Circle
+            x={x + w - markings.penaltySpotDist}
+            y={y + h / 2}
+            radius={lineWidth * 1.4}
+            fill={lineColor}
+            opacity={lineOpacity}
+          />
+
+          {/* Corner Arcs (Top-Right & Bottom-Right) */}
+          <Arc
+            x={x + w}
+            y={y}
+            innerRadius={markings.cornerArcRadius}
+            outerRadius={markings.cornerArcRadius}
+            angle={90}
+            rotation={90}
+            stroke={lineColor}
+            strokeWidth={lineWidth}
+            opacity={lineOpacity}
+          />
+          <Arc
+            x={x + w}
+            y={y + h}
+            innerRadius={markings.cornerArcRadius}
+            outerRadius={markings.cornerArcRadius}
             angle={90}
             rotation={180}
             stroke={lineColor}
@@ -319,150 +706,241 @@ export const PitchBackground: React.FC<PitchBackgroundProps> = React.memo(({
             opacity={lineOpacity}
           />
 
-          {/* Left Goal Net Frame */}
-          <Rect
-            x={x - w * 0.024}
-            y={y + (h - goalAreaHeight * 0.8) / 2}
-            width={w * 0.024}
-            height={goalAreaHeight * 0.8}
-            stroke="rgba(255, 255, 255, 0.6)"
-            strokeWidth={1.5}
-            fill="rgba(255, 255, 255, 0.08)"
+          {/* Right Goal Frame */}
+          <GoalFrame
+            side="right"
+            goalLineX={x + w}
+            pitchY={y}
+            pitchH={h}
+            goalWidth={markings.goalWidth}
+            goalDepth={markings.goalDepth}
+            lineWidth={lineWidth}
           />
 
-          {/* Right Goal Net Frame */}
-          <Rect
-            x={x + w}
-            y={y + (h - goalAreaHeight * 0.8) / 2}
-            width={w * 0.024}
-            height={goalAreaHeight * 0.8}
-            stroke="rgba(255, 255, 255, 0.6)"
-            strokeWidth={1.5}
-            fill="rgba(255, 255, 255, 0.08)"
+          {/* Subtle Final-Third Watermark */}
+          <Text
+            x={x + 12}
+            y={y + 12}
+            text="FINAL-THIRD (BOX ZOOM)"
+            fontSize={10}
+            fontFamily="system-ui, sans-serif"
+            fontStyle="bold"
+            fill={lineColor}
+            opacity={0.3}
+            listening={false}
           />
         </>
       ) : (
         /* Half Pitch Mode Markings */
         <>
-          {/* Attacking Goal End (Right Side) */}
-          <Rect
-            x={x + w - penaltyBoxDepth * 1.5}
-            y={y + (h - penaltyBoxHeight) / 2}
-            width={penaltyBoxDepth * 1.5}
-            height={penaltyBoxHeight}
+          {/* Halfway Line on Left Boundary */}
+          <Line
+            points={[x, y, x, y + h]}
             stroke={lineColor}
             strokeWidth={lineWidth}
             opacity={lineOpacity}
           />
-          <Circle
-            x={x + w - penaltySpotDist * 1.5}
-            y={y + h / 2}
-            radius={lineWidth * 1.4}
-            fill={lineColor}
-            opacity={lineOpacity}
-          />
+
           {/* Halfway Arc from left boundary */}
           <Arc
             x={x}
             y={y + h / 2}
-            innerRadius={centerRadius * 1.3}
-            outerRadius={centerRadius * 1.3}
+            innerRadius={markings.centerRadius}
+            outerRadius={markings.centerRadius}
             angle={180}
             rotation={-90}
             stroke={lineColor}
             strokeWidth={lineWidth}
             opacity={lineOpacity}
           />
-          {/* Right Goal Post */}
-          <Rect
+          <Circle
+            x={x}
+            y={y + h / 2}
+            radius={lineWidth * 1.4}
+            fill={lineColor}
+            opacity={lineOpacity}
+          />
+
+          {/* Attacking Goal End (Right Side) */}
+          {markings.isFutsalPenaltyArea ? (
+            <>
+              {/* Futsal Right Penalty Area (6m D-shape) */}
+              <FutsalPenaltyArea
+                side="right"
+                goalLineX={x + w}
+                pitchY={y}
+                pitchH={h}
+                goalWidth={markings.goalWidth}
+                radiusX={markings.penaltySpotDist}
+                radiusY={futsalRadiusY}
+                lineColor={lineColor}
+                lineWidth={lineWidth}
+                lineOpacity={lineOpacity}
+              />
+              {/* Futsal 10m Second Penalty Mark */}
+              <Circle
+                x={x + w - markings.secondPenaltyDist}
+                y={y + h / 2}
+                radius={lineWidth * 1.3}
+                fill={lineColor}
+                opacity={lineOpacity}
+              />
+            </>
+          ) : (
+            <>
+              {/* Penalty Box */}
+              <Rect
+                x={x + w - markings.penaltyBoxDepth}
+                y={y + (h - markings.penaltyBoxWidth) / 2}
+                width={markings.penaltyBoxDepth}
+                height={markings.penaltyBoxWidth}
+                stroke={lineColor}
+                strokeWidth={lineWidth}
+                opacity={lineOpacity}
+              />
+
+              {/* 6-yard Goal Area */}
+              {markings.hasGoalArea && (
+                <Rect
+                  x={x + w - markings.goalAreaDepth}
+                  y={y + (h - markings.goalAreaWidth) / 2}
+                  width={markings.goalAreaDepth}
+                  height={markings.goalAreaWidth}
+                  stroke={lineColor}
+                  strokeWidth={lineWidth}
+                  opacity={lineOpacity}
+                />
+              )}
+
+              {/* Penalty Arc (D) */}
+              <PenaltyArcHelper
+                boxLineX={x + w - markings.penaltyBoxDepth}
+                spotY={y + h / 2}
+                radius={markings.centerRadius}
+                side="left"
+                pitchType={pitchType}
+                lineColor={lineColor}
+                lineWidth={lineWidth}
+                lineOpacity={lineOpacity}
+              />
+            </>
+          )}
+
+          {/* Penalty Spot */}
+          <Circle
+            x={x + w - markings.penaltySpotDist}
+            y={y + h / 2}
+            radius={lineWidth * 1.4}
+            fill={lineColor}
+            opacity={lineOpacity}
+          />
+
+          {/* Corner Arcs (Top-Right & Bottom-Right) */}
+          <Arc
             x={x + w}
-            y={y + (h - goalAreaHeight) / 2}
-            width={w * 0.03}
-            height={goalAreaHeight}
-            stroke="rgba(255, 255, 255, 0.7)"
-            strokeWidth={1.5}
-            fill="rgba(255, 255, 255, 0.1)"
+            y={y}
+            innerRadius={markings.cornerArcRadius}
+            outerRadius={markings.cornerArcRadius}
+            angle={90}
+            rotation={90}
+            stroke={lineColor}
+            strokeWidth={lineWidth}
+            opacity={lineOpacity}
+          />
+          <Arc
+            x={x + w}
+            y={y + h}
+            innerRadius={markings.cornerArcRadius}
+            outerRadius={markings.cornerArcRadius}
+            angle={90}
+            rotation={180}
+            stroke={lineColor}
+            strokeWidth={lineWidth}
+            opacity={lineOpacity}
+          />
+
+          {/* Right Goal Frame */}
+          <GoalFrame
+            side="right"
+            goalLineX={x + w}
+            pitchY={y}
+            pitchH={h}
+            goalWidth={markings.goalWidth}
+            goalDepth={markings.goalDepth}
+            lineWidth={lineWidth}
           />
         </>
       )}
 
       {/* Tactical Zones Overlay (18-Zone grid / Half-spaces) */}
-      {showZones && (
-        <Group listening={false}>
-          {/* 6 horizontal zones (5 dividing lines) */}
-          {[1, 2, 3, 4, 5].map((idx) => (
-            <Line
-              key={`zone-col-${idx}`}
-              points={[x + (idx * w) / 6, y, x + (idx * w) / 6, y + h]}
-              stroke={zoneColor}
-              strokeWidth={1.5}
-              dash={[6, 6]}
-              opacity={0.65}
-            />
-          ))}
-          {/* 3 vertical zones (Flanks & Central/Half-spaces - 2 dividing lines) */}
-          {[1, 2].map((idx) => (
-            <Line
-              key={`zone-row-${idx}`}
-              points={[x, y + (idx * h) / 3, x + w, y + (idx * h) / 3]}
-              stroke={zoneColor}
-              strokeWidth={1.5}
-              dash={[6, 6]}
-              opacity={0.65}
-            />
-          ))}
+      {showZones && (() => {
+        const { cells, colLines, rowLines } = calculateTacticalZones(pitchView, x, y, w, h);
+        return (
+          <Group listening={false}>
+            {/* Vertical dividing lines */}
+            {colLines.map((colX, idx) => (
+              <Line
+                key={`zone-col-${idx}`}
+                points={[colX, y, colX, y + h]}
+                stroke={zoneColor}
+                strokeWidth={1.5}
+                dash={[6, 6]}
+                opacity={0.65}
+              />
+            ))}
+            {/* Horizontal dividing lines (Flanks & Central corridor) */}
+            {rowLines.map((rowY, idx) => (
+              <Line
+                key={`zone-row-${idx}`}
+                points={[x, rowY, x + w, rowY]}
+                stroke={zoneColor}
+                strokeWidth={1.5}
+                dash={[6, 6]}
+                opacity={0.65}
+              />
+            ))}
 
-          {/* 18 Individual Zone Numbers & Subtle Labels */}
-          {Array.from({ length: 6 }).map((_, c) =>
-            Array.from({ length: 3 }).map((_, r) => {
-              const zoneNum = c * 3 + r + 1;
-              const cellW = w / 6;
-              const cellH = h / 3;
-              const cellX = x + c * cellW;
-              const cellY = y + r * cellH;
-              const isZone14 = zoneNum === 14;
-
-              return (
-                <Group key={`zone-cell-${zoneNum}`}>
-                  {/* Subtle tint for Zone 14 (Golden Playmaker zone) */}
-                  {isZone14 && (
-                    <Rect
-                      x={cellX + 2}
-                      y={cellY + 2}
-                      width={cellW - 4}
-                      height={cellH - 4}
-                      fill={zoneColor}
-                      opacity={0.12}
-                      cornerRadius={4}
-                    />
-                  )}
-                  {/* Zone Number */}
-                  <Text
-                    x={cellX}
-                    y={cellY + cellH * 0.4}
-                    width={cellW}
-                    text={isZone14 ? '14 ★' : `${zoneNum}`}
-                    align="center"
-                    fontSize={Math.max(10, Math.min(18, Math.round(cellW * 0.15)))}
-                    fontStyle="bold"
+            {/* Tactical Zone Cells with Consistent Absolute Zone Numbering */}
+            {cells.map((cell) => (
+              <Group key={`zone-cell-${cell.zoneNum}`}>
+                {/* Subtle tint for Zone 14 (Golden Playmaker zone) */}
+                {cell.isZone14 && (
+                  <Rect
+                    x={cell.x + 2}
+                    y={cell.y + 2}
+                    width={cell.width - 4}
+                    height={cell.height - 4}
                     fill={zoneColor}
-                    opacity={isZone14 ? 0.9 : 0.5}
+                    opacity={0.12}
+                    cornerRadius={4}
                   />
-                </Group>
-              );
-            })
-          )}
-        </Group>
-      )}
+                )}
+                {/* Zone Number */}
+                <Text
+                  x={cell.x}
+                  y={cell.y + cell.height * 0.4}
+                  width={cell.width}
+                  text={cell.label}
+                  align="center"
+                  fontSize={Math.max(10, Math.min(18, Math.round(cell.width * 0.15)))}
+                  fontStyle="bold"
+                  fill={zoneColor}
+                  opacity={cell.isZone14 ? 0.9 : 0.5}
+                />
+              </Group>
+            ))}
+          </Group>
+        );
+      })()}
 
       {/* Grid Overlay */}
       {showGrid && (
-        <Group opacity={0.2}>
+        <Group opacity={0.35}>
           {Array.from({ length: 19 }).map((_, i) => (
             <Line
               key={`grid-x-${i}`}
               points={[x + (i + 1) * (w / 20), y, x + (i + 1) * (w / 20), y + h]}
-              stroke="#94a3b8"
+              stroke={gridColor}
               strokeWidth={0.75}
               dash={[3, 3]}
             />
@@ -471,7 +949,7 @@ export const PitchBackground: React.FC<PitchBackgroundProps> = React.memo(({
             <Line
               key={`grid-y-${i}`}
               points={[x, y + (i + 1) * (h / 10), x + w, y + (i + 1) * (h / 10)]}
-              stroke="#94a3b8"
+              stroke={gridColor}
               strokeWidth={0.75}
               dash={[3, 3]}
             />

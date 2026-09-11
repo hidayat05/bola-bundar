@@ -1,4 +1,7 @@
 import { PitchType, PitchView } from '../types/tactics';
+import { getPitchSpec, getVisiblePitchDimensions } from './pitchConfig';
+
+export { getPitchSpec, getVisiblePitchDimensions };
 
 export interface PitchLayout {
   containerWidth: number;
@@ -25,38 +28,45 @@ export interface PitchLayout {
   aspectRatio: number;
 }
 
+export function getPitchRealDimensions(pitchType: PitchType): {
+  lengthMeters: number;
+  widthMeters: number;
+} {
+  const spec = getPitchSpec(pitchType);
+  return { lengthMeters: spec.lengthMeters, widthMeters: spec.widthMeters };
+}
+
 export function calculatePitchLayout(
   width: number,
   height: number,
   pitchType: PitchType,
   pitchView: PitchView
 ): PitchLayout {
-  // Real-world aspect ratios
-  let aspectRatio = 1.54; // Football 105m x 68m (~1.544)
-  if (pitchType === 'mini-soccer') {
-    aspectRatio = 1.5; // Mini-soccer 60m x 40m
-  } else if (pitchType === 'futsal') {
-    aspectRatio = 2.0; // Futsal 40m x 20m
-  }
+  const { aspectRatio } = getVisiblePitchDimensions(pitchType, pitchView);
 
-  if (pitchView === 'half') {
-    // Half pitch aspect ratio (length is halved)
-    aspectRatio = aspectRatio / 2; // e.g. 0.77 for football half pitch
-    // If container is wider than tall, half pitch can be oriented horizontally or vertically
-    // In horizontal mode, 1:1 or 1.2:1
-    aspectRatio = 1.2;
-  }
-
-  // Margin allocation adaptive for mobile and compact landscape screens
+  // Adaptive layout configuration to maximize pitch size between top and bottom bar
   const isShortScreen = height <= 520;
   const isMobile = width < 600 || isShortScreen;
-  const marginX = isShortScreen ? 12 : (width < 400 ? 10 : (isMobile ? 16 : 36));
-  const marginTop = isShortScreen ? 6 : (isMobile ? 10 : 20);
-  const marginBottom = isShortScreen ? 32 : (isMobile ? 52 : 76); // Space for bench dock
 
-  const availableWidth = Math.max(160, width - marginX * 2);
-  const availableHeight = Math.max(120, height - (marginTop + marginBottom));
+  // Horizontal margins: compact margins to give maximum width while preserving run-off
+  const marginX = isShortScreen ? 12 : (width < 500 ? 12 : (isMobile ? 16 : 20));
 
+  // Vertical margins:
+  // TopNavbar is directly above container (y=0). Pitch outer run-off extends 12px above pitchY.
+  // Setting marginTop = 14px (or 10px on short screen) places run-off edge at y=2px directly under TopNavbar.
+  const marginTop = isShortScreen ? 10 : 14;
+
+  // Sideline Bench (Dugout) height & gap below pitch
+  const gapPitchToBench = isShortScreen ? 4 : 8;
+  const benchH = isShortScreen ? 22 : 28;
+  const marginBottomPad = isShortScreen ? 4 : 6;
+  const totalBottomArea = gapPitchToBench + benchH + marginBottomPad;
+
+  // Available dimensions for pitch rendering
+  const availableWidth = Math.max(120, width - marginX * 2);
+  const availableHeight = Math.max(120, height - (marginTop + totalBottomArea));
+
+  // Field size calculation: full 1.0 scale to maximize pitch visibility across all views
   let pitchW = availableWidth;
   let pitchH = pitchW / aspectRatio;
 
@@ -65,13 +75,17 @@ export function calculatePitchLayout(
     pitchW = pitchH * aspectRatio;
   }
 
+  // Center horizontally within container
   const pitchX = (width - pitchW) / 2;
-  const pitchY = marginTop + (availableHeight - pitchH) / 2;
+
+  // If height allows, keep pitch neatly aligned with tight top margin or subtly centered
+  const pitchY = marginTop + Math.max(0, (availableHeight - pitchH) * 0.5);
 
   // Bench dugouts underneath the pitch
-  const benchW = pitchW * 0.47;
-  const benchH = isShortScreen ? 24 : (isMobile ? 38 : 50);
-  const benchY = pitchY + pitchH + (isShortScreen ? 4 : (isMobile ? 8 : 12));
+  const gapBetweenBenches = 8;
+  const maxSingleBenchW = Math.max(100, Math.min(220, (pitchW - gapBetweenBenches) / 2));
+  const benchW = Math.min(pitchW * 0.48, maxSingleBenchW);
+  const benchY = pitchY + pitchH + gapPitchToBench;
 
   const benchRectHome = {
     x: pitchX,

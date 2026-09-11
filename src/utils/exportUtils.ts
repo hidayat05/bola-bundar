@@ -24,6 +24,7 @@ export function exportTacticsToJson(data: {
   pitchView: PitchView;
   pitchSurface: PitchSurface;
   showGrid: boolean;
+  gridColor?: string;
   showZones: boolean;
   zoneColor?: string;
   homeTeam: TeamConfig;

@@ -1,9 +1,10 @@
 export type PitchType = 'football' | 'mini-soccer' | 'futsal';
-export type PitchView = 'full' | 'half';
+export type PitchView = 'full' | 'half' | 'third';
 export type PitchSurface = 'grass' | 'full-green' | 'turf' | 'wood' | 'blue';
 export type TeamSide = 'home' | 'away' | 'neutral';
 export type TeamDisplayMode = 'both' | 'single';
 export type TokenStyle = 'jersey' | 'circle';
+export type TargetZoneKey = 'near-post' | 'far-post' | 'penalty-spot' | 'edge-of-box' | 'cutback';
 
 export interface PlayerToken {
   id: string;
@@ -18,6 +19,7 @@ export interface PlayerToken {
   customColor?: string;
   customTextColor?: string;
   role?: string;
+  isWall?: boolean;
 }
 
 export interface BallToken {
@@ -91,6 +93,7 @@ export interface TacticsExportData {
   pitchView: PitchView;
   pitchSurface: PitchSurface;
   showGrid: boolean;
+  gridColor?: string;
   showZones: boolean;
   zoneColor?: string;
   homeTeam: TeamConfig;

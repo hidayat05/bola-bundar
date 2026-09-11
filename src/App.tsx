@@ -10,6 +10,7 @@ import { useTacticalPlayback } from './hooks/useTacticalPlayback';
 import { Users, Sliders, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { GuidedTour } from './components/ui/GuidedTour';
 import { SplashScreen } from './components/ui/SplashScreen';
+import { SetpiecePresetsModal } from './components/setpiece/SetpiecePresetsModal';
 
 export const App: React.FC = () => {
   const stageRef = useRef<Konva.Stage>(null);
@@ -25,6 +26,7 @@ export const App: React.FC = () => {
   });
 
   const selectedPlayerId = useTacticsStore((s) => s.selectedPlayerId);
+  const isSetpieceMode = useTacticsStore((s) => s.isSetpieceMode);
 
   // Height-aware compact detection (width < 1024 or height <= 520 for mobile landscape)
   const [isCompact, setIsCompact] = useState(() => {
@@ -40,6 +42,14 @@ export const App: React.FC = () => {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  // When entering Setpiece mode, close mobile drawer & collapse sidebar to keep screen clean and avoid overlap
+  useEffect(() => {
+    if (isSetpieceMode) {
+      setMobileDrawerOpen(false);
+      setSidebarCollapsed(true);
+    }
+  }, [isSetpieceMode]);
 
   // Activate playback interpolation loop hook
   useTacticalPlayback();
@@ -65,15 +75,15 @@ export const App: React.FC = () => {
     }
   };
 
-  // Automatically switch tab to inspector when a player is selected and open drawer on mobile/compact
+  // Automatically switch tab to inspector when a player is selected and open drawer on mobile/compact (only when NOT in setpiece mode)
   useEffect(() => {
-    if (selectedPlayerId) {
+    if (selectedPlayerId && !isSetpieceMode) {
       setSidebarTab('inspector');
       if (isCompact) {
         setMobileDrawerOpen(true);
       }
     }
-  }, [selectedPlayerId, isCompact]);
+  }, [selectedPlayerId, isCompact, isSetpieceMode]);
 
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden bg-slate-950 font-sans">
@@ -82,6 +92,9 @@ export const App: React.FC = () => {
 
       {/* 0. Interactive Guided Tour Walkthrough with Spotlight Button Highlighting */}
       <GuidedTour isOpen={isTourOpen} onClose={() => setIsTourOpen(false)} />
+
+      {/* 0. Setpiece Routine Presets Modal */}
+      <SetpiecePresetsModal />
 
       {/* 1. Top Navbar Controls */}
       <TopNavbar
@@ -96,8 +109,8 @@ export const App: React.FC = () => {
         <main data-tour="pitch-canvas" className="flex-1 h-full relative overflow-hidden flex flex-col">
           <TacticalCanvas stageRef={stageRef} />
 
-          {/* Floating Drawer Trigger Button (Visible when screen is compact / mobile landscape) */}
-          {isCompact && (
+          {/* Floating Drawer Trigger Button (Visible when screen is compact, but hidden in setpiece mode) */}
+          {isCompact && !isSetpieceMode && (
             <div className="absolute bottom-3 right-3 z-20">
               <button
                 onClick={() => setMobileDrawerOpen(true)}
@@ -113,8 +126,8 @@ export const App: React.FC = () => {
           )}
         </main>
 
-        {/* Desktop Sidebar Collapse Toggle Button (Hidden when compact) */}
-        {!isCompact && (
+        {/* Desktop Sidebar Collapse Toggle Button (Hidden when compact or in setpiece mode) */}
+        {!isCompact && !isSetpieceMode && (
           <button
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
             className="hidden md:flex items-center justify-center absolute right-0 top-1/2 -translate-y-1/2 z-20 bg-slate-800 hover:bg-slate-700 text-slate-300 p-1 rounded-l-md border-l border-y border-slate-700 shadow-md transition-all"
@@ -129,8 +142,8 @@ export const App: React.FC = () => {
           </button>
         )}
 
-        {/* Desktop Docked Sidebar (Hidden when compact) */}
-        {!isCompact && (
+        {/* Desktop Docked Sidebar (Hidden when compact or in setpiece mode) */}
+        {!isCompact && !isSetpieceMode && (
           <aside
             data-tour="squad-panel"
             className={`w-80 h-full flex-col bg-slate-900 border-l border-slate-800 shadow-xl z-10 transition-all ${
@@ -175,7 +188,7 @@ export const App: React.FC = () => {
         )}
 
         {/* Mobile / Compact Slide-Over Drawer with Backdrop Scrim */}
-        {isCompact && mobileDrawerOpen && (
+        {isCompact && mobileDrawerOpen && !isSetpieceMode && (
           <div className="fixed inset-0 z-50 flex">
             {/* Backdrop */}
             <div

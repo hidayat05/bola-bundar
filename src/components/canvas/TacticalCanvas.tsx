@@ -1,13 +1,17 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { Stage, Layer } from 'react-konva';
+import { Stage, Layer, Group, Line } from 'react-konva';
 import Konva from 'konva';
 import { useTacticsStore } from '../../store/useTacticsStore';
-import { calculatePitchLayout } from '../../utils/pitchGeometry';
+import { calculatePitchLayout, normToCanvas } from '../../utils/pitchGeometry';
 import { PitchBackground } from './PitchBackground';
 import { PlayerTokenNode } from './PlayerTokenNode';
 import { BallNode } from './BallNode';
 import { DrawingLayer } from './DrawingLayer';
 import { DrawingToolbar } from '../toolbar/DrawingToolbar';
+import { DistanceBarrierNode } from './DistanceBarrierNode';
+import { TargetZonesNode } from './TargetZonesNode';
+import { SetpieceAssistantBar } from '../setpiece/SetpieceAssistantBar';
+import { getDefaultBarrierDistance } from '../../utils/setpieceUtils';
 
 // High-DPI canvas rendering capped at 2 for optimal Retina clarity and 60 FPS mobile performance
 if (typeof window !== 'undefined') {
@@ -27,6 +31,7 @@ export const TacticalCanvas: React.FC<TacticalCanvasProps> = ({ stageRef }) => {
     pitchView,
     pitchSurface,
     showGrid,
+    gridColor,
     showZones,
     zoneColor,
     teamDisplayMode,
@@ -41,6 +46,13 @@ export const TacticalCanvas: React.FC<TacticalCanvasProps> = ({ stageRef }) => {
     activeTool,
     isPlaying,
     interpolatedFrame,
+    isSetpieceMode,
+    showDistanceBarrier,
+    barrierDistance,
+    setpieceAttackingTeam,
+    showTargetZones,
+    activeTargetZone,
+    setActiveTargetZone,
     selectPlayer,
     setHoveredPlayer,
     setSwapTargetPlayer,
@@ -50,6 +62,8 @@ export const TacticalCanvas: React.FC<TacticalCanvasProps> = ({ stageRef }) => {
     swapPlayers,
     updateBallPosition,
   } = useTacticsStore();
+
+  const effectiveBarrierDistance = barrierDistance ?? getDefaultBarrierDistance(pitchType);
 
   // During animation playback, display interpolated frame; otherwise current active frame
   const currentFrame =
@@ -124,6 +138,9 @@ export const TacticalCanvas: React.FC<TacticalCanvasProps> = ({ stageRef }) => {
       {/* Floating Drawing Tools Bar */}
       <DrawingToolbar />
 
+      {/* Floating Setpiece Assistant Controls Bar */}
+      <SetpieceAssistantBar />
+
       <Stage
         ref={stageRef}
         width={dimensions.width}
@@ -139,6 +156,7 @@ export const TacticalCanvas: React.FC<TacticalCanvasProps> = ({ stageRef }) => {
             pitchView={pitchView}
             pitchSurface={pitchSurface}
             showGrid={showGrid}
+            gridColor={gridColor}
             showZones={showZones}
             zoneColor={zoneColor}
             homeTeamName={homeTeam.name}
@@ -150,6 +168,60 @@ export const TacticalCanvas: React.FC<TacticalCanvasProps> = ({ stageRef }) => {
 
         {/* Layer 2: Player Tokens & Ball */}
         <Layer>
+          {/* Target Zones Landing Markers */}
+          {isSetpieceMode && showTargetZones && (
+            <TargetZonesNode
+              layout={layout}
+              pitchType={pitchType}
+              pitchView={pitchView}
+              ball={currentFrame.ball}
+              activeTargetZone={activeTargetZone}
+              onSelectZone={setActiveTargetZone}
+            />
+          )}
+
+          {/* Setpiece Legal Distance Barrier Circle (Hidden once ball has been passed / in play) */}
+          {showDistanceBarrier && !isPlaying && activeFrameIndex === 0 && (
+            <DistanceBarrierNode
+              ball={currentFrame.ball}
+              layout={layout}
+              pitchType={pitchType}
+              pitchView={pitchView}
+              players={currentFrame.players}
+              attackingTeam={setpieceAttackingTeam}
+              barrierDistanceMeters={effectiveBarrierDistance}
+            />
+          )}
+
+          {/* Defensive Wall Bracket Indicator */}
+          {(() => {
+            const wallPlayers = visiblePlayers.filter((p) => p.isWall && !p.isBench);
+            if (wallPlayers.length < 2) return null;
+            const pts = wallPlayers.flatMap((p) => {
+              const pos = normToCanvas(p.x, p.y, false, p.team, layout);
+              return [pos.x, pos.y];
+            });
+            return (
+              <Group listening={false}>
+                <Line
+                  points={pts}
+                  stroke="rgba(245, 158, 11, 0.35)"
+                  strokeWidth={28}
+                  lineCap="round"
+                  lineJoin="round"
+                />
+                <Line
+                  points={pts}
+                  stroke="#fbbf24"
+                  strokeWidth={2}
+                  dash={[4, 4]}
+                  lineCap="round"
+                  lineJoin="round"
+                />
+              </Group>
+            );
+          })()}
+
           {/* Draggable Ball */}
           <BallNode
             ball={currentFrame.ball}
