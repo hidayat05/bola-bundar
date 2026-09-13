@@ -14,6 +14,8 @@ import { TargetZonesNode } from './TargetZonesNode';
 import { EquipmentNode } from './EquipmentNode';
 import { ActionSpotlightLayer } from './ActionSpotlightLayer';
 import { TacticalStrategyHUD } from './TacticalStrategyHUD';
+import { PositionalGridOverlay } from './PositionalGridOverlay';
+import { PlayerActionZoneLayer } from './PlayerActionZoneLayer';
 import { EquipmentToolbar } from '../training/EquipmentToolbar';
 import { SetpieceAssistantBar } from '../setpiece/SetpieceAssistantBar';
 import { getDefaultBarrierDistance } from '../../utils/setpieceUtils';
@@ -71,6 +73,12 @@ export const TacticalCanvas: React.FC<TacticalCanvasProps> = ({ stageRef }) => {
     showActionSpotlight,
     equipment,
     selectedEquipmentId,
+    positionalGridMode,
+    showRestDefense,
+    showPassingLanes,
+    showAllActionZones,
+    futsalRule4Sec,
+    soundEnabled,
     setActiveTargetZone,
     selectPlayer,
     setHoveredPlayer,
@@ -84,6 +92,7 @@ export const TacticalCanvas: React.FC<TacticalCanvasProps> = ({ stageRef }) => {
     updateEquipmentRotation,
     deleteEquipment,
     setSelectedEquipmentId,
+    isPresentationMode,
   } = useTacticsStore(
     useShallow((s) => ({
       pitchType: s.pitchType,
@@ -117,6 +126,12 @@ export const TacticalCanvas: React.FC<TacticalCanvasProps> = ({ stageRef }) => {
       showActionSpotlight: s.showActionSpotlight,
       equipment: s.equipment,
       selectedEquipmentId: s.selectedEquipmentId,
+      positionalGridMode: s.positionalGridMode,
+      showRestDefense: s.showRestDefense,
+      showPassingLanes: s.showPassingLanes,
+      showAllActionZones: s.showAllActionZones,
+      futsalRule4Sec: s.futsalRule4Sec,
+      soundEnabled: s.soundEnabled,
       setActiveTargetZone: s.setActiveTargetZone,
       selectPlayer: s.selectPlayer,
       setHoveredPlayer: s.setHoveredPlayer,
@@ -130,6 +145,7 @@ export const TacticalCanvas: React.FC<TacticalCanvasProps> = ({ stageRef }) => {
       updateEquipmentRotation: s.updateEquipmentRotation,
       deleteEquipment: s.deleteEquipment,
       setSelectedEquipmentId: s.setSelectedEquipmentId,
+      isPresentationMode: s.isPresentationMode,
     }))
   );
 
@@ -192,6 +208,29 @@ export const TacticalCanvas: React.FC<TacticalCanvasProps> = ({ stageRef }) => {
   const maxRadius = 22;
   const tokenRadius = Math.max(minRadius, Math.min(maxRadius, layout.pitchRect.height * 0.046));
 
+  // GPU Bitmap Caching for Pitch Layer (Ultra 60/120 FPS playback performance)
+  const pitchLayerRef = useRef<Konva.Layer>(null);
+  useEffect(() => {
+    const layer = pitchLayerRef.current;
+    if (!layer) return;
+    layer.clearCache();
+    const timer = setTimeout(() => {
+      try {
+        layer.cache();
+      } catch {
+        // Safe fallback if canvas is unmounted or in offscreen mode
+      }
+    }, 60);
+    return () => {
+      clearTimeout(timer);
+      try {
+        layer.clearCache();
+      } catch {
+        // ignore
+      }
+    };
+  }, [layout, pitchType, pitchView, pitchSurface, showGrid, gridColor, showZones, zoneColor]);
+
   // Click background to deselect
   const handleStageClick = (e: Konva.KonvaEventObject<MouseEvent | TouchEvent>) => {
     if (e.target === e.target.getStage() && activeTool === 'select') {
@@ -220,18 +259,19 @@ export const TacticalCanvas: React.FC<TacticalCanvasProps> = ({ stageRef }) => {
   return (
     <div
       ref={containerRef}
+      style={{ touchAction: 'none', overscrollBehavior: 'none' }}
       className={`relative w-full h-full flex items-center justify-center overflow-hidden bg-slate-950 select-none ${
         activeTool !== 'select' ? 'cursor-crosshair' : 'cursor-default'
       }`}
     >
       {/* Floating Drawing Tools Bar */}
-      <DrawingToolbar />
+      {!isPresentationMode && <DrawingToolbar />}
 
       {/* Floating Equipment Toolbar */}
-      <EquipmentToolbar />
+      {!isPresentationMode && <EquipmentToolbar />}
 
       {/* Floating Setpiece Assistant Controls Bar */}
-      <SetpieceAssistantBar />
+      {!isPresentationMode && <SetpieceAssistantBar />}
 
       <Stage
         ref={stageRef}
@@ -240,8 +280,8 @@ export const TacticalCanvas: React.FC<TacticalCanvasProps> = ({ stageRef }) => {
         onClick={handleStageClick}
         onTap={handleStageClick}
       >
-        {/* Layer 1: Pitch grass, markings, grid, and dugouts */}
-        <Layer listening={false}>
+        {/* Layer 1: Pitch grass, markings, grid, and dugouts (Cached to GPU Texture) */}
+        <Layer ref={pitchLayerRef} listening={false}>
           <PitchBackground
             layout={layout}
             pitchType={pitchType}
@@ -257,6 +297,23 @@ export const TacticalCanvas: React.FC<TacticalCanvasProps> = ({ stageRef }) => {
             soloTeamSide={soloTeamSide}
           />
         </Layer>
+
+        {/* Layer 1.2: Positional Play Grid (Juego de Posicion), Rest Defense, Passing Lanes & Futsal 4s Rule */}
+        {(positionalGridMode !== 'none' || showRestDefense || showPassingLanes || (pitchType === 'futsal' && futsalRule4Sec)) && (
+          <Layer>
+            <PositionalGridOverlay
+              layout={layout}
+              pitchType={pitchType}
+              players={currentFrame.players}
+              ball={currentFrame.ball}
+              gridMode={positionalGridMode}
+              showRestDefense={showRestDefense}
+              showPassingLanes={showPassingLanes}
+              showFutsal4Sec={futsalRule4Sec}
+              soundEnabled={soundEnabled}
+            />
+          </Layer>
+        )}
 
         {/* Layer 1.5: Spatial Tactical Intelligence (Convex Hull Compactness & Defensive Lines) */}
         <Layer listening={false}>
@@ -484,17 +541,18 @@ export const TacticalCanvas: React.FC<TacticalCanvasProps> = ({ stageRef }) => {
           </Layer>
         )}
 
-        {/* Layer 2B: Interactive Player Tokens and Draggable Ball */}
-        <Layer>
-          {/* Draggable Ball */}
-          <BallNode
-            ball={currentFrame.ball}
+        {/* Layer 2A.5: Player Tactical Action Zones (Bounding Box, Overlap/Underlap/Cover, listening=false) */}
+        <Layer listening={false}>
+          <PlayerActionZoneLayer
             layout={layout}
-            onUpdatePosition={updateBallPosition}
-            setIsDragging={setIsDragging}
+            players={currentFrame.players}
+            selectedPlayerId={selectedPlayerId}
+            showAllActionZones={showAllActionZones}
           />
+        </Layer>
 
-          {/* Player Tokens */}
+        {/* Layer 2B: Interactive Player Tokens */}
+        <Layer>
           {sortedPlayers.map((player) => {
             const teamConfig = player.team === 'home' ? homeTeam : awayTeam;
             return (
@@ -518,6 +576,16 @@ export const TacticalCanvas: React.FC<TacticalCanvasProps> = ({ stageRef }) => {
               />
             );
           })}
+        </Layer>
+
+        {/* Layer 2C: High-Visibility Draggable Ball (Always on top of players!) */}
+        <Layer>
+          <BallNode
+            ball={currentFrame.ball}
+            layout={layout}
+            onUpdatePosition={updateBallPosition}
+            setIsDragging={setIsDragging}
+          />
         </Layer>
 
         {/* Layer 2.5: Training Ground Equipment */}

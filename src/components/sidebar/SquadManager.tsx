@@ -150,49 +150,151 @@ export const SquadManager: React.FC = React.memo(() => {
       </div>
 
       {/* Formation Selector & Team Settings Toggle */}
-      <div className="px-3 py-2 border-b border-slate-800 bg-slate-950/40 flex items-center justify-between gap-2">
-        <div className="flex-1">
-          <label className="text-[10px] uppercase tracking-wider text-slate-400 block mb-1 font-semibold">
-            Preset Formation
-          </label>
-          <select
-            onChange={(e) => {
-              if (e.target.value) {
-                applyFormation(activeTab, e.target.value);
-              }
-            }}
-            defaultValue=""
-            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-slate-200 text-xs font-medium focus:outline-none focus:border-emerald-500 cursor-pointer"
-          >
-            <option value="" disabled>
-              Choose formation / drill...
-            </option>
-            {Array.from(new Set(formations.map((f) => f.category || 'Standard'))).map((cat) => (
-              <optgroup key={cat} label={cat} className="bg-slate-900 font-semibold text-emerald-400">
-                {formations
-                  .filter((f) => (f.category || 'Standard') === cat)
-                  .map((f) => (
-                    <option key={f.name} value={f.name} className="bg-slate-900 text-slate-200">
-                      {f.name}
-                    </option>
-                  ))}
-              </optgroup>
-            ))}
-          </select>
+      <div className="px-3 py-2 border-b border-slate-800 bg-slate-950/40">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex-1">
+            <label className="text-[10px] uppercase tracking-wider text-slate-400 block mb-1 font-semibold">
+              Preset Formation
+            </label>
+            <select
+              onChange={(e) => {
+                if (e.target.value) {
+                  applyFormation(activeTab, e.target.value);
+                }
+              }}
+              defaultValue=""
+              className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-slate-200 text-xs font-medium focus:outline-none focus:border-emerald-500 cursor-pointer"
+            >
+              <option value="" disabled>
+                Choose formation / drill...
+              </option>
+              {Array.from(new Set(formations.map((f) => f.category || 'Standard'))).map((cat) => (
+                <optgroup key={cat} label={cat} className="bg-slate-900 font-semibold text-emerald-400">
+                  {formations
+                    .filter((f) => (f.category || 'Standard') === cat)
+                    .map((f) => (
+                      <option key={f.name} value={f.name} className="bg-slate-900 text-slate-200">
+                        {f.name}
+                      </option>
+                    ))}
+                </optgroup>
+              ))}
+            </select>
+          </div>
+
+          <Tooltip title="Pengaturan Tim" description="Kustomisasi nama dan warna jersey tim" position="left">
+            <button
+              onClick={() => setShowTeamCustomizer(!showTeamCustomizer)}
+              className={`mt-4 p-1.5 rounded-lg border transition-colors ${
+                showTeamCustomizer
+                  ? 'bg-slate-700 border-slate-600 text-slate-100'
+                  : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <Settings2 className="w-4 h-4" />
+            </button>
+          </Tooltip>
         </div>
 
-        <Tooltip title="Pengaturan Tim" description="Kustomisasi nama dan warna jersey tim" position="left">
-          <button
-            onClick={() => setShowTeamCustomizer(!showTeamCustomizer)}
-            className={`mt-4 p-1.5 rounded-lg border transition-colors ${
-              showTeamCustomizer
-                ? 'bg-slate-700 border-slate-600 text-slate-100'
-                : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <Settings2 className="w-4 h-4" />
-          </button>
-        </Tooltip>
+        {/* Quick Shapeshifter Pills */}
+        <div className="flex items-center gap-1.5 mt-2 overflow-x-auto scrollbar-none pb-0.5">
+          {pitchType === 'football' && (
+            <>
+              <button
+                type="button"
+                onClick={() => {
+                  applyFormation(activeTab, '3-2-4-1 (Inverted Fullback / Box Midfield)');
+                  if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(10);
+                }}
+                className="text-[10px] font-bold px-2 py-1 rounded-lg bg-emerald-950/70 border border-emerald-500/40 text-emerald-300 hover:bg-emerald-900/80 whitespace-nowrap transition-all shadow-sm flex items-center gap-1 cursor-pointer"
+                title="Inversi Pep: Geser Full-back ke lini tengah membentuk Box Midfield 3-2-4-1"
+              >
+                <span>⚡</span>
+                <span>Inversi 3-2-4-1</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  applyFormation(activeTab, '4-4-2 Flat');
+                  if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(10);
+                }}
+                className="text-[10px] font-bold px-2 py-1 rounded-lg bg-slate-900 border border-slate-700 text-slate-300 hover:bg-slate-800 whitespace-nowrap transition-all shadow-sm flex items-center gap-1 cursor-pointer"
+                title="Blok Rapat: Dua lapis 4 pemain bertahan kompak"
+              >
+                <span>🛡️</span>
+                <span>Blok 4-4-2</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  applyFormation(activeTab, '4-3-3 Holding (Single Pivot)');
+                  if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(10);
+                }}
+                className="text-[10px] font-bold px-2 py-1 rounded-lg bg-slate-900 border border-slate-700 text-slate-300 hover:bg-slate-800 whitespace-nowrap transition-all shadow-sm flex items-center gap-1 cursor-pointer"
+                title="Struktur Penguasaan Bola 4-3-3 Single Pivot"
+              >
+                <span>🌐</span>
+                <span>4-3-3 Pivot</span>
+              </button>
+            </>
+          )}
+          {pitchType === 'futsal' && (
+            <>
+              <button
+                type="button"
+                onClick={() => {
+                  applyFormation(activeTab, '1-2-1 Diamond (Standard Pivot)');
+                  if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(10);
+                }}
+                className="text-[10px] font-bold px-2 py-1 rounded-lg bg-emerald-950/70 border border-emerald-500/40 text-emerald-300 hover:bg-emerald-900/80 whitespace-nowrap transition-all shadow-sm flex items-center gap-1 cursor-pointer"
+                title="Pivô Diamond Klasik 1-2-1"
+              >
+                <span>💎</span>
+                <span>1-2-1 Diamond</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  applyFormation(activeTab, '4-0 In-Line / False 9 (Fly-GK / Total Movement)');
+                  if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(10);
+                }}
+                className="text-[10px] font-bold px-2 py-1 rounded-lg bg-purple-950/70 border border-purple-500/40 text-purple-300 hover:bg-purple-900/80 whitespace-nowrap transition-all shadow-sm flex items-center gap-1 cursor-pointer"
+                title="Rotasi Total 4-0 Futsal Modern (False 9)"
+              >
+                <span>🔄</span>
+                <span>Rotasi 4-0</span>
+              </button>
+            </>
+          )}
+          {pitchType === 'mini-soccer' && (
+            <>
+              <button
+                type="button"
+                onClick={() => {
+                  applyFormation(activeTab, '3-2-1 (Solid Defense / Counter)');
+                  if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(10);
+                }}
+                className="text-[10px] font-bold px-2 py-1 rounded-lg bg-emerald-950/70 border border-emerald-500/40 text-emerald-300 hover:bg-emerald-900/80 whitespace-nowrap transition-all shadow-sm flex items-center gap-1 cursor-pointer"
+                title="Piramida Kompak 3-2-1"
+              >
+                <span>🔺</span>
+                <span>3-2-1 Piramida</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  applyFormation(activeTab, '2-3-1 (Balanced Standard)');
+                  if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(10);
+                }}
+                className="text-[10px] font-bold px-2 py-1 rounded-lg bg-slate-900 border border-slate-700 text-slate-300 hover:bg-slate-800 whitespace-nowrap transition-all shadow-sm flex items-center gap-1 cursor-pointer"
+                title="Sayap Menyerang 2-3-1"
+              >
+                <span>⚡</span>
+                <span>2-3-1 Sayap</span>
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Team Customizer Accordion */}

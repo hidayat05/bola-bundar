@@ -29,6 +29,8 @@ import {
   Eye,
   Sliders,
   FolderDown,
+  Link2,
+  Keyboard,
 } from 'lucide-react';
 import Konva from 'konva';
 import { useShallow } from 'zustand/react/shallow';
@@ -40,6 +42,7 @@ import {
   parseTacticsJson,
   CanvasVideoRecorder,
 } from '../../utils/exportUtils';
+import { buildShareUrl } from '../../utils/shareLink';
 import { Tooltip } from '../ui/Tooltip';
 import { useTranslation } from '../../i18n/useTranslation';
 import { Translations } from '../../i18n/translations';
@@ -124,7 +127,11 @@ export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({ stageRef, onOpe
     setShowActionSpotlight,
     showStrategyHUD,
     setShowStrategyHUD,
+    showBallBeacon,
+    setShowBallBeacon,
+    pingBall,
     setIsDrillNotesModalOpen,
+    setIsShortcutsModalOpen,
     isEquipmentToolbarOpen,
     setIsEquipmentToolbarOpen,
     equipment,
@@ -177,11 +184,15 @@ export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({ stageRef, onOpe
       setShowActionSpotlight: s.setShowActionSpotlight,
       showStrategyHUD: s.showStrategyHUD,
       setShowStrategyHUD: s.setShowStrategyHUD,
+      showBallBeacon: s.showBallBeacon,
+      setShowBallBeacon: s.setShowBallBeacon,
+      pingBall: s.pingBall,
       setIsDrillNotesModalOpen: s.setIsDrillNotesModalOpen,
       isEquipmentToolbarOpen: s.isEquipmentToolbarOpen,
       setIsEquipmentToolbarOpen: s.setIsEquipmentToolbarOpen,
       equipment: s.equipment,
       drillNotes: s.drillNotes,
+      setIsShortcutsModalOpen: s.setIsShortcutsModalOpen,
     }))
   );
 
@@ -283,6 +294,56 @@ export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({ stageRef, onOpe
       equipment,
       drillNotes,
     });
+    setOpenDropdown(null);
+    setMobileMenuOpen(false);
+  };
+
+  // Share Link (LZ-compressed URL) — clipboard only, no new tab
+  const [shareCopied, setShareCopied] = useState(false);
+  const handleShareLink = async () => {
+    const url = buildShareUrl({
+      version: '1.0.0',
+      exportedAt: new Date().toISOString(),
+      appName: 'Bola Bundar Tactical Board',
+      pitchType,
+      pitchView,
+      pitchSurface,
+      showGrid,
+      gridColor,
+      showZones,
+      zoneColor,
+      homeTeam,
+      awayTeam,
+      frames,
+      equipment,
+      drillNotes,
+    });
+
+    // Primary: modern Clipboard API
+    let copied = false;
+    try {
+      await navigator.clipboard.writeText(url);
+      copied = true;
+    } catch {
+      // Fallback: textarea + execCommand (works in WebView, older browsers)
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = url;
+        ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0;pointer-events:none';
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        copied = document.execCommand('copy');
+        document.body.removeChild(ta);
+      } catch {
+        copied = false;
+      }
+    }
+
+    if (copied) {
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2500);
+    }
     setOpenDropdown(null);
     setMobileMenuOpen(false);
   };
@@ -428,6 +489,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({ stageRef, onOpe
             {/* ---------------- 1. MENU LAPANGAN / PITCH ---------------- */}
             <div className="relative">
               <button
+                data-tour="solo-mode"
                 onClick={() => toggleDropdown('pitch')}
                 className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all border ${
                   openDropdown === 'pitch'
@@ -511,6 +573,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({ stageRef, onOpe
                       <option value="turf">{t('surfaceTurf')}</option>
                       <option value="blue">{t('surfaceBlue')}</option>
                       <option value="wood">{t('surfaceWood')}</option>
+                      <option value="dark-board">{t('surfaceDarkBoard')}</option>
                     </select>
                   </div>
 
@@ -593,6 +656,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({ stageRef, onOpe
             {/* ---------------- 2. MENU ANALISIS / ANALYSIS ---------------- */}
             <div className="relative">
               <button
+                data-tour="zones-grid"
                 onClick={() => toggleDropdown('analysis')}
                 className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all border ${
                   openDropdown === 'analysis'
@@ -833,6 +897,36 @@ export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({ stageRef, onOpe
                       {showStrategyHUD ? 'ON' : 'OFF'}
                     </button>
                   </div>
+
+                  {/* 8. Ball Beacon & High-Visibility Aura */}
+                  <div className="flex items-center justify-between p-2 rounded-xl bg-slate-950/60 border border-slate-800/80">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs">⚽</span>
+                      <div>
+                        <span className="text-xs font-semibold text-slate-200 block">{t('ballBeacon')}</span>
+                        <span className="text-[10px] text-slate-400">{t('ballBeaconDesc')}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={pingBall}
+                        className="px-2 py-1 rounded-lg text-[10px] font-bold bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 transition-all active:scale-95 shadow-sm"
+                        title="Ping gelombang untuk menemukan bola di lapangan"
+                      >
+                        Ping 🎯
+                      </button>
+                      <button
+                        onClick={() => setShowBallBeacon(!showBallBeacon)}
+                        className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all border ${
+                          showBallBeacon
+                            ? 'bg-amber-500/20 border-amber-500/50 text-amber-300'
+                            : 'bg-slate-800/80 border-slate-700 text-slate-400'
+                        }`}
+                      >
+                        {showBallBeacon ? 'ON' : 'OFF'}
+                      </button>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
@@ -959,6 +1053,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({ stageRef, onOpe
             {/* ---------------- 4. MENU BERKAS / FILE ---------------- */}
             <div className="relative">
               <button
+                data-tour="export-controls"
                 onClick={() => toggleDropdown('file')}
                 className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all border ${
                   openDropdown === 'file'
@@ -1014,6 +1109,18 @@ export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({ stageRef, onOpe
                   >
                     <Download className="w-4 h-4 text-emerald-400" />
                     <span>{t('exportJson')}</span>
+                  </button>
+
+                  <button
+                    onClick={handleShareLink}
+                    className={`w-full p-2 rounded-xl border text-xs font-medium flex items-center gap-2.5 transition-all duration-300 ${
+                      shareCopied
+                        ? 'bg-emerald-600 border-emerald-500 text-white'
+                        : 'bg-slate-950 hover:bg-slate-850 border-slate-800 hover:border-cyan-500/50 text-slate-200'
+                    }`}
+                  >
+                    <Link2 className={`w-4 h-4 ${shareCopied ? 'text-white' : 'text-cyan-400'}`} />
+                    <span>{shareCopied ? '✅ Link Tersalin!' : '🔗 Share Link'}</span>
                   </button>
 
                   <button
@@ -1103,6 +1210,18 @@ export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({ stageRef, onOpe
             >
               <HelpCircle className="w-3.5 h-3.5" />
               <span className="hidden xl:inline">Panduan</span>
+            </button>
+          </Tooltip>
+
+          {/* Keyboard Shortcuts Button (Desktop) */}
+          <Tooltip content="Pintasan Keyboard" description="Lihat panduan tombol pintasan keyboard (Tekan ?)" shortcut="?" position="bottom">
+            <button
+              onClick={() => setIsShortcutsModalOpen(true)}
+              className="hidden lg:flex p-1.5 px-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 hover:text-white hover:bg-slate-700 text-xs items-center gap-1 font-semibold transition-colors shrink-0"
+              title="Pintasan Keyboard (?)"
+            >
+              <Keyboard className="w-3.5 h-3.5 text-sky-400" />
+              <span className="hidden xl:inline">Pintasan</span>
             </button>
           </Tooltip>
 
@@ -1256,6 +1375,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({ stageRef, onOpe
                 <option value="turf">{t('surfaceTurf')}</option>
                 <option value="blue">{t('surfaceBlue')}</option>
                 <option value="wood">{t('surfaceWood')}</option>
+                <option value="dark-board">{t('surfaceDarkBoard')}</option>
               </select>
             </div>
 
@@ -1491,7 +1611,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({ stageRef, onOpe
               {t('menuFile')}
             </label>
 
-            <div className="grid grid-cols-4 gap-1.5">
+            <div className="grid grid-cols-5 gap-1.5">
               <button
                 onClick={handleSnapshot}
                 className="p-2 rounded-xl bg-slate-900 border border-slate-800 text-sky-400 text-xs flex flex-col items-center gap-1 font-medium hover:border-sky-500/40"
@@ -1506,6 +1626,18 @@ export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({ stageRef, onOpe
               >
                 <Download className="w-4 h-4" />
                 <span className="text-[10px]">Export</span>
+              </button>
+
+              <button
+                onClick={handleShareLink}
+                className={`p-2 rounded-xl border text-xs flex flex-col items-center gap-1 font-medium transition-all duration-300 ${
+                  shareCopied
+                    ? 'bg-emerald-600 border-emerald-500 text-white'
+                    : 'bg-slate-900 border-slate-800 text-cyan-400 hover:border-cyan-500/40'
+                }`}
+              >
+                <Link2 className="w-4 h-4" />
+                <span className="text-[10px]">{shareCopied ? '✅' : 'Share'}</span>
               </button>
 
               <button
@@ -1531,6 +1663,18 @@ export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({ stageRef, onOpe
               </button>
             </div>
           </div>
+
+          {/* Pintasan Keyboard Mobile Button */}
+          <button
+            onClick={() => {
+              setIsShortcutsModalOpen(true);
+              setMobileMenuOpen(false);
+            }}
+            className="w-full py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-bold flex items-center justify-center gap-2 transition-colors mb-2"
+          >
+            <Keyboard className="w-4 h-4 text-sky-400" />
+            <span>Pintasan Keyboard</span>
+          </button>
 
           {/* Panduan Tutorial Mobile Button */}
           <button

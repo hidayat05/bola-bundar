@@ -1,14 +1,14 @@
-import React, { useMemo, useRef, useState } from 'react';
-import { Group, Circle, Line, Ellipse } from 'react-konva';
+import React, { useMemo, useRef, useState, useEffect } from 'react';
+import { Group, Circle, Line, Ellipse, Rect, Text } from 'react-konva';
 import Konva from 'konva';
-import { BallToken } from '../../types/tactics';
+import { BallToken, PlayerToken } from '../../types/tactics';
 import { PitchLayout, normToCanvas, canvasToNorm } from '../../utils/pitchGeometry';
 import { useTacticsStore } from '../../store/useTacticsStore';
 
 interface BallNodeProps {
   ball: BallToken;
   layout: PitchLayout;
-  onUpdatePosition: (x: number, y: number, rotation?: number) => void;
+  onUpdatePosition: (x: number, y: number, rotation?: number, rotationAxis?: [number, number, number]) => void;
   setIsDragging: (dragging: boolean) => void;
 }
 
@@ -130,7 +130,29 @@ function createSoccerBall3DMesh() {
     });
   });
 
-  return { pentagons, seams };
+  // Construct 20 hexagon face centers from adjacent triangular icosahedron triplets
+  const hexagonCenters: Vector3[] = [];
+  for (let i = 0; i < tiltedIco.length; i++) {
+    const pI = pentagons[i];
+    for (const j of pI.neighborIds) {
+      if (j > i) {
+        const pJ = pentagons[j];
+        const common = pI.neighborIds.filter((k) => k > j && pJ.neighborIds.includes(k));
+        for (const k of common) {
+          const v1 = tiltedIco[i];
+          const v2 = tiltedIco[j];
+          const v3 = tiltedIco[k];
+          const cx = (v1[0] + v2[0] + v3[0]) / 3;
+          const cy = (v1[1] + v2[1] + v3[1]) / 3;
+          const cz = (v1[2] + v2[2] + v3[2]) / 3;
+          const clen = Math.hypot(cx, cy, cz);
+          hexagonCenters.push([cx / clen, cy / clen, cz / clen]);
+        }
+      }
+    }
+  }
+
+  return { pentagons, seams, hexagonCenters };
 }
 
 // Global cached 3D mesh definition
@@ -146,16 +168,47 @@ export const BallNode: React.FC<BallNodeProps> = React.memo(({
   const activeTool = useTacticsStore((s) => s.activeTool);
   const isPlaying = useTacticsStore((s) => s.isPlaying);
   const currentFrame = useTacticsStore((s) => s.frames[s.activeFrameIndex]);
+  const showBallBeacon = useTacticsStore((s) => s.showBallBeacon);
+  const pingBallTrigger = useTacticsStore((s) => s.pingBallTrigger);
   const isInteractive = activeTool === 'select' && !isPlaying;
 
   const [isHovered, setIsHovered] = useState(false);
+  const [dragPos, setDragPos] = useState<{ x: number; y: number } | null>(null);
   const [dragRotation, setDragRotation] = useState<number | null>(null);
   const [dragAxis, setDragAxis] = useState<Vector3 | null>(null);
   const lastDragPos = useRef<{ x: number; y: number } | null>(null);
 
-  // Scaled radius for clear visibility and crisp 3D rendering
-  const radius = Math.max(10, Math.min(14, layout.pitchRect.width * 0.012));
+  // Radar ping pulse animation triggered on 'Temukan Bola'
+  const [pingActive, setPingActive] = useState(false);
+  useEffect(() => {
+    if (pingBallTrigger > 0) {
+      setPingActive(true);
+      const timer = setTimeout(() => setPingActive(false), 2400);
+      return () => clearTimeout(timer);
+    }
+  }, [pingBallTrigger]);
+
+  // Enhanced radius for maximum visibility on all pitch colors and devices
+  const radius = Math.max(12, Math.min(16.5, layout.pitchRect.width * 0.0145));
   const canvasPos = normToCanvas(ball.x, ball.y, false, 'neutral', layout);
+
+  // Detect which player is closest to the ball for possession indicator
+  const { closestPlayer, closestDist } = useMemo(() => {
+    const activePlayers = currentFrame?.players.filter((p) => !p.isBench) || [];
+    let nearest: PlayerToken | null = null;
+    let minD = Infinity;
+    for (const p of activePlayers) {
+      const pPos = normToCanvas(p.x, p.y, false, p.team, layout);
+      const d = Math.hypot(canvasPos.x - pPos.x, canvasPos.y - pPos.y);
+      if (d < minD) {
+        minD = d;
+        nearest = p;
+      }
+    }
+    return { closestPlayer: nearest, closestDist: minD };
+  }, [currentFrame?.players, canvasPos.x, canvasPos.y, layout]);
+
+  const hasPossession = closestDist < 36 && closestPlayer !== null;
 
   // Rotation parameters: angle in radians and 3D rolling axis
   const currentAngleDeg = dragRotation !== null ? dragRotation : (ball.rotation || 0);
@@ -164,40 +217,60 @@ export const BallNode: React.FC<BallNodeProps> = React.memo(({
 
   // 3D Projection: rotate vertices and project onto 2D canvas with spherical foreshortening
   const projectedData = useMemo(() => {
-    const { pentagons, seams } = SOCCER_BALL_MESH;
+    const { pentagons, seams, hexagonCenters } = SOCCER_BALL_MESH;
 
-    // Rotate and project visible pentagons
-    const visiblePentagons: number[][] = [];
+    // Rotate and project visible pentagons (front hemisphere z > 0.0 to prevent back-face bleedthrough)
+    const visiblePentagons: { points: number[]; center: Vector3; depth: number }[] = [];
     pentagons.forEach((p) => {
       const rotCenter = rotateVector3(p.center, currentAxis, currentAngleRad);
-      // Cull pentagons on the back hemisphere (z < -0.2)
-      if (rotCenter[2] > -0.2) {
+      if (rotCenter[2] > 0.0) {
         const polyPoints: number[] = [];
         p.vertices.forEach((v) => {
           const rotV = rotateVector3(v, currentAxis, currentAngleRad);
           polyPoints.push(rotV[0] * radius, rotV[1] * radius);
         });
-        visiblePentagons.push(polyPoints);
+        visiblePentagons.push({
+          points: polyPoints,
+          center: rotCenter,
+          depth: rotCenter[2],
+        });
       }
     });
 
-    // Rotate and project visible seam edges
+    // Rotate and project visible hexagon leather depth highlights
+    const visibleHexagons: { x: number; y: number; depth: number }[] = [];
+    hexagonCenters.forEach((hc) => {
+      const rotH = rotateVector3(hc, currentAxis, currentAngleRad);
+      if (rotH[2] > 0.06) {
+        visibleHexagons.push({
+          x: rotH[0] * radius,
+          y: rotH[1] * radius,
+          depth: rotH[2],
+        });
+      }
+    });
+
+    // Rotate and project visible seam edges (front hemisphere)
     const visibleSeams: number[][] = [];
     seams.forEach(({ p1, p2 }) => {
       const r1 = rotateVector3(p1, currentAxis, currentAngleRad);
       const r2 = rotateVector3(p2, currentAxis, currentAngleRad);
-      if (r1[2] > -0.15 && r2[2] > -0.15) {
+      if (r1[2] > -0.05 && r2[2] > -0.05) {
         visibleSeams.push([r1[0] * radius, r1[1] * radius, r2[0] * radius, r2[1] * radius]);
       }
     });
 
-    return { visiblePentagons, visibleSeams };
+    return { visiblePentagons, visibleHexagons, visibleSeams };
   }, [currentAxis, currentAngleRad, radius]);
 
   const handleDragStart = (e: Konva.KonvaEventObject<DragEvent>) => {
     setIsDragging(true);
-    lastDragPos.current = { x: e.target.x(), y: e.target.y() };
+    const startX = e.target.x();
+    const startY = e.target.y();
+    lastDragPos.current = { x: startX, y: startY };
+    setDragPos({ x: startX, y: startY });
     setDragRotation(ball.rotation || 0);
+    setDragAxis(ball.rotationAxis || DEFAULT_ROTATION_AXIS);
   };
 
   const handleDragMove = (e: Konva.KonvaEventObject<DragEvent>) => {
@@ -210,19 +283,21 @@ export const BallNode: React.FC<BallNodeProps> = React.memo(({
       const dist = Math.hypot(dX, dY);
 
       if (dist > 0.4) {
-        // Rolling axis perpendicular to 2D motion vector on the pitch
+        // Physical rolling axis perpendicular to 2D travel direction
         const axisX = -dY / dist;
         const axisY = dX / dist;
         setDragAxis([axisX, axisY, 0]);
 
-        // Continuous roll angle in degrees proportional to dragging distance
+        // Exact physical roll angle without slip: angle = dist / radius * (180 / PI)
+        const degPerPixel = 180 / (Math.PI * radius);
         setDragRotation((prev) => {
           const base = prev ?? (ball.rotation || 0);
-          return ((base + dist * 3.8) % 360 + 360) % 360;
+          return ((base + dist * degPerPixel) % 360 + 360) % 360;
         });
       }
     }
 
+    setDragPos({ x: curX, y: curY });
     lastDragPos.current = { x: curX, y: curY };
   };
 
@@ -231,9 +306,11 @@ export const BallNode: React.FC<BallNodeProps> = React.memo(({
     const dropX = e.target.x();
     const dropY = e.target.y();
     const finalRot = dragRotation !== null ? dragRotation : (ball.rotation || 0);
+    const finalAxis = dragAxis || ball.rotationAxis || DEFAULT_ROTATION_AXIS;
 
     setDragRotation(null);
     setDragAxis(null);
+    setDragPos(null);
     lastDragPos.current = null;
 
     // Magnetic snap to nearby player's feet (within 36px)
@@ -257,17 +334,25 @@ export const BallNode: React.FC<BallNodeProps> = React.memo(({
       const snappedCanvasX = closestPlayer.pos.x + Math.cos(rad) * snapDist;
       const snappedCanvasY = closestPlayer.pos.y + Math.sin(rad) * snapDist;
       const { normX, normY } = canvasToNorm(snappedCanvasX, snappedCanvasY, layout);
-      onUpdatePosition(normX, normY, finalRot);
+      onUpdatePosition(normX, normY, finalRot, finalAxis);
+      if (typeof navigator !== 'undefined' && navigator.vibrate) {
+        navigator.vibrate(15);
+      }
     } else {
       const { normX, normY } = canvasToNorm(dropX, dropY, layout);
-      onUpdatePosition(normX, normY, finalRot);
+      onUpdatePosition(normX, normY, finalRot, finalAxis);
     }
   };
 
+  // 3D Ball elevation flight physics (lofted pass / chip ball)
+  const elevation = ball.elevation || 0;
+  const altitudeY = -elevation * radius * 1.8;
+  const visualScale = 1 + elevation * 0.42;
+
   return (
     <Group
-      x={canvasPos.x}
-      y={canvasPos.y}
+      x={dragPos ? dragPos.x : canvasPos.x}
+      y={dragPos ? dragPos.y : canvasPos.y}
       draggable={isInteractive}
       listening={isInteractive}
       onDragStart={handleDragStart}
@@ -277,24 +362,78 @@ export const BallNode: React.FC<BallNodeProps> = React.memo(({
       onMouseLeave={() => setIsHovered(false)}
       cursor={isInteractive ? 'grab' : 'default'}
     >
-      {/* 1. Realistic Drop Shadow onto Pitch Grass */}
+      {/* 1. Ground Shadow (stays grounded on grass, expands & softens with elevation) */}
       <Ellipse
         x={0}
-        y={radius * 0.78}
-        radiusX={radius * 0.88}
-        radiusY={radius * 0.35}
-        fill="rgba(0, 0, 0, 0.45)"
+        y={radius * 0.85}
+        radiusX={radius * (1.08 + elevation * 0.35)}
+        radiusY={radius * (0.42 + elevation * 0.18)}
+        fill={`rgba(0, 0, 0, ${0.52 * Math.max(0.2, 1 - elevation * 0.45)})`}
         listening={false}
       />
+
+      {/* 1.1 Elevated 3D Flying Ball Body */}
+      <Group y={altitudeY} scaleX={visualScale} scaleY={visualScale} listening={false}>
+
+      {/* 1.2 Radar Ping Rings (Triggered on 'Temukan Bola') */}
+      {pingActive && (
+        <Group listening={false}>
+          <Circle
+            radius={radius + 16}
+            stroke="#facc15"
+            strokeWidth={2.5}
+            dash={[4, 4]}
+            opacity={0.9}
+          />
+          <Circle
+            radius={radius + 32}
+            stroke="#f59e0b"
+            strokeWidth={2}
+            dash={[6, 4]}
+            opacity={0.65}
+          />
+          <Circle
+            radius={radius + 48}
+            stroke="#f97316"
+            strokeWidth={1.5}
+            dash={[8, 6]}
+            opacity={0.4}
+          />
+        </Group>
+      )}
+
+      {/* 1.4 High-Visibility Glowing Golden/Amber Aura Halo */}
+      {showBallBeacon && (
+        <Group listening={false}>
+          {/* Outer diffuse aura glow */}
+          <Circle
+            radius={radius + 7.5}
+            fill="rgba(245, 158, 11, 0.2)"
+            stroke="#f59e0b"
+            strokeWidth={1.8}
+            dash={[4, 3]}
+            shadowColor="#f59e0b"
+            shadowBlur={8}
+            shadowOpacity={0.6}
+          />
+          {/* Inner high-contrast crisp white ring */}
+          <Circle
+            radius={radius + 3.2}
+            stroke="#ffffff"
+            strokeWidth={1.4}
+            opacity={0.95}
+          />
+        </Group>
+      )}
 
       {/* 2. Interactive Selection / Hover Glow Ring */}
       {isHovered && isInteractive && (
         <Circle
-          radius={radius + 4}
+          radius={radius + 5}
           stroke="#10b981"
-          strokeWidth={2}
+          strokeWidth={2.2}
           dash={[3, 3]}
-          opacity={0.85}
+          opacity={0.95}
           listening={false}
         />
       )}
@@ -313,11 +452,11 @@ export const BallNode: React.FC<BallNodeProps> = React.memo(({
           1, '#64748b',
         ]}
         stroke="#0f172a"
-        strokeWidth={1.2}
+        strokeWidth={1.4}
         shadowColor="#000000"
-        shadowBlur={4}
-        shadowOpacity={0.35}
-        shadowOffset={{ x: 0, y: 1.5 }}
+        shadowBlur={5}
+        shadowOpacity={0.4}
+        shadowOffset={{ x: 0, y: 1.8 }}
         listening={false}
       />
 
@@ -328,18 +467,50 @@ export const BallNode: React.FC<BallNodeProps> = React.memo(({
         }}
         listening={false}
       >
-        {/* 3D Projected Pentagons */}
-        {projectedData.visiblePentagons.map((pts, i) => (
-          <Line
-            key={`pentagon-${i}`}
-            points={pts}
-            closed
-            fill="#1e293b"
-            stroke="#0f172a"
-            strokeWidth={0.8}
-            lineJoin="round"
+        {/* 3D Projected Hexagon Leather Depth Highlights */}
+        {projectedData.visibleHexagons.map((hex, i) => (
+          <Circle
+            key={`hex-${i}`}
+            x={hex.x}
+            y={hex.y}
+            radius={radius * 0.22 * Math.max(0.4, hex.depth)}
+            fill="rgba(255, 255, 255, 0.55)"
             listening={false}
           />
+        ))}
+
+        {/* 3D Projected Pentagons (Classic Telstar Jet-Black Panels) */}
+        {projectedData.visiblePentagons.map((p, i) => (
+          <Group key={`pentagon-${i}`} listening={false}>
+            <Line
+              points={p.points}
+              closed
+              fill="#090d16"
+              stroke="#000000"
+              strokeWidth={1.1}
+              lineJoin="round"
+              listening={false}
+            />
+            {/* Pentagon central golden crest for instant visual rotational tracking */}
+            {p.depth > 0.08 && (
+              <Circle
+                x={p.center[0] * radius}
+                y={p.center[1] * radius}
+                radius={Math.max(1, radius * 0.09 * p.depth)}
+                fill="#f59e0b"
+                listening={false}
+              />
+            )}
+            {p.depth > 0.2 && (
+              <Circle
+                x={p.center[0] * radius}
+                y={p.center[1] * radius}
+                radius={Math.max(0.6, radius * 0.045 * p.depth)}
+                fill="#fef08a"
+                listening={false}
+              />
+            )}
+          </Group>
         ))}
 
         {/* 3D Projected Seam Edges connecting pentagons (Hexagon boundaries) */}
@@ -347,8 +518,8 @@ export const BallNode: React.FC<BallNodeProps> = React.memo(({
           <Line
             key={`seam-${i}`}
             points={pts}
-            stroke="#475569"
-            strokeWidth={0.9}
+            stroke="#1e293b"
+            strokeWidth={1.35}
             lineCap="round"
             listening={false}
           />
@@ -356,32 +527,81 @@ export const BallNode: React.FC<BallNodeProps> = React.memo(({
       </Group>
 
       {/* 5. Static 3D Spherical Light & Reflection (Stays stationary as ball spins!) */}
-      {/* Top-left soft diffuse shine */}
+      {/* Stadium floodlight specular reflection */}
       <Circle
-        x={-radius * 0.32}
-        y={-radius * 0.32}
-        radius={radius * 0.42}
+        x={-radius * 0.35}
+        y={-radius * 0.35}
+        radius={radius * 0.20}
         fill="#ffffff"
-        opacity={0.45}
+        opacity={0.6}
         listening={false}
       />
-
-      {/* Top-left intense glossy specular glint */}
       <Circle
         x={-radius * 0.38}
         y={-radius * 0.38}
-        radius={radius * 0.16}
+        radius={radius * 0.08}
         fill="#ffffff"
-        opacity={0.9}
+        opacity={0.95}
         listening={false}
       />
 
       {/* Bottom-right ambient shadow / spherical depth crescent */}
       <Circle
         radius={radius}
-        stroke="rgba(15, 23, 42, 0.35)"
-        strokeWidth={1.8}
+        stroke="rgba(15, 23, 42, 0.28)"
+        strokeWidth={1.6}
         listening={false}
+      />
+
+      {/* 6. Floating Ball Beacon Marker (Broadcast TV Style Pin) */}
+      {showBallBeacon && (
+        <Group y={-radius - 12} listening={false}>
+          {/* Downward pointing triangle */}
+          <Line
+            points={[-5, -2, 5, -2, 0, 5]}
+            closed
+            fill="#f59e0b"
+            stroke="#ffffff"
+            strokeWidth={0.8}
+            shadowColor="#000"
+            shadowBlur={3}
+            shadowOpacity={0.5}
+          />
+
+          {/* Beacon pill label */}
+          <Rect
+            x={hasPossession && closestPlayer ? -24 : -19}
+            y={-14}
+            width={hasPossession && closestPlayer ? 48 : 38}
+            height={13}
+            fill="rgba(15, 23, 42, 0.95)"
+            stroke="#f59e0b"
+            strokeWidth={1.2}
+            cornerRadius={4}
+            shadowColor="#000"
+            shadowBlur={4}
+            shadowOpacity={0.7}
+          />
+          <Text
+            text={hasPossession && closestPlayer ? `⚽ #${closestPlayer.number}` : '⚽ BOLA'}
+            fontSize={7.5}
+            fontFamily="system-ui, -apple-system, sans-serif"
+            fontStyle="bold"
+            fill="#fef08a"
+            align="center"
+            width={hasPossession && closestPlayer ? 48 : 38}
+            offsetX={hasPossession && closestPlayer ? 24 : 19}
+            y={-12.5}
+          />
+        </Group>
+      )}
+      </Group>
+
+      {/* 7. Large Touch Hit Area for effortless mobile interaction */}
+      <Circle
+        radius={radius * 1.8}
+        fill="rgba(0, 0, 0, 0.001)"
+        hitStrokeWidth={24}
       />
     </Group>
   );

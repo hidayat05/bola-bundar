@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { ClipboardList, Plus, Trash2, X, Check, Clock, Users, Maximize } from 'lucide-react';
+import { ClipboardList, Plus, Trash2, X, Check, Clock, Users, Maximize, Printer } from 'lucide-react';
 import { useTacticsStore } from '../../store/useTacticsStore';
 import { useTranslation } from '../../i18n/useTranslation';
 import { DrillMetadata } from '../../types/tactics';
 
 export const DrillNotesModal: React.FC = () => {
   const { t } = useTranslation();
-  const { isDrillNotesModalOpen, setIsDrillNotesModalOpen, drillNotes, setDrillNotes } =
+  const { isDrillNotesModalOpen, setIsDrillNotesModalOpen, drillNotes, setDrillNotes, pitchType } =
     useTacticsStore();
 
   const [title, setTitle] = useState(drillNotes.title);
@@ -43,6 +43,105 @@ export const DrillNotesModal: React.FC = () => {
     setCoachingPoints(coachingPoints.filter((_, i) => i !== index));
   };
 
+  const handlePrintSessionSheet = () => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    const sportLabel =
+      pitchType === 'football'
+        ? 'Sepak Bola 11v11'
+        : pitchType === 'mini-soccer'
+        ? 'Mini Soccer 7v7'
+        : 'Futsal 5v5';
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <title>${title || 'Rancangan Sesi Taktik'} - Bola Bundar</title>
+        <style>
+          @page { size: A4 portrait; margin: 14mm; }
+          * { box-sizing: border-box; }
+          body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #0f172a; margin: 0; padding: 20px; line-height: 1.5; }
+          .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2.5px solid #0f172a; padding-bottom: 12px; margin-bottom: 18px; }
+          .logo { font-size: 20px; font-weight: 900; letter-spacing: -0.5px; }
+          .badge { background: #059669; color: #fff; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 800; text-transform: uppercase; }
+          .title-block { margin-bottom: 18px; }
+          .drill-title { font-size: 22px; font-weight: 800; color: #0f172a; margin: 0 0 4px 0; }
+          .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 22px; background: #f8fafc; border: 1px solid #e2e8f0; padding: 12px; border-radius: 8px; }
+          .grid-item label { display: block; font-size: 9.5px; font-weight: 800; color: #64748b; text-transform: uppercase; margin-bottom: 2px; }
+          .grid-item span { font-size: 12.5px; font-weight: 700; color: #1e293b; }
+          .section { margin-bottom: 18px; }
+          .section-title { font-size: 11.5px; font-weight: 800; text-transform: uppercase; color: #334155; border-bottom: 1px solid #cbd5e1; padding-bottom: 4px; margin-bottom: 8px; }
+          .objective-box { font-size: 12.5px; margin: 0; background: #f0fdf4; border-left: 4px solid #16a34a; padding: 10px 12px; border-radius: 6px; color: #166534; font-weight: 500; }
+          .points-list { padding-left: 18px; margin: 0; }
+          .points-list li { margin-bottom: 6px; font-size: 12.5px; color: #334155; font-weight: 500; }
+          .footer { margin-top: 36px; font-size: 10.5px; color: #94a3b8; text-align: center; border-top: 1px solid #e2e8f0; padding-top: 10px; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div>
+            <div class="logo">⚽ BOLA BUNDAR — SESSION PLAN</div>
+            <div style="font-size: 11px; color: #64748b; font-weight: 500;">Papan Taktik Digital & Lembar Kerja Pelatih</div>
+          </div>
+          <span class="badge">${sportLabel}</span>
+        </div>
+
+        <div class="title-block">
+          <h1 class="drill-title">${title || 'Rancangan Sesi Latihan Taktik'}</h1>
+          <div style="font-size: 11.5px; color: #64748b;">Fase Taktis: <strong>${phase.toUpperCase()}</strong></div>
+        </div>
+
+        <div class="grid">
+          <div class="grid-item">
+            <label>Tipe Lapangan</label>
+            <span>${sportLabel}</span>
+          </div>
+          <div class="grid-item">
+            <label>Dimensi Area</label>
+            <span>${dimensions || 'Standar'}</span>
+          </div>
+          <div class="grid-item">
+            <label>Estimasi Durasi</label>
+            <span>${duration || '-'}</span>
+          </div>
+          <div class="grid-item">
+            <label>Jumlah Pemain</label>
+            <span>${playerCount || '-'}</span>
+          </div>
+        </div>
+
+        ${objective ? `
+        <div class="section">
+          <div class="section-title">🎯 Tujuan Utama (Tactical Objective)</div>
+          <div class="objective-box">${objective}</div>
+        </div>` : ''}
+
+        ${coachingPoints.length > 0 ? `
+        <div class="section">
+          <div class="section-title">📋 Poin Kunci Pelatih (Key Coaching Points)</div>
+          <ul class="points-list">
+            ${coachingPoints.map((p) => `<li>${p}</li>`).join('')}
+          </ul>
+        </div>` : ''}
+
+        <div class="footer">
+          Dibuat dengan Bola Bundar Tactical Board • Dicetak pada ${new Date().toLocaleDateString('id-ID', { dateStyle: 'full' })}
+        </div>
+      </body>
+      </html>
+    `;
+
+    printWindow.document.write(html);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+      printWindow.print();
+    }, 250);
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="relative w-full max-w-xl bg-slate-900 border border-slate-700/80 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
@@ -59,18 +158,18 @@ export const DrillNotesModal: React.FC = () => {
           </div>
           <button
             onClick={() => setIsDrillNotesModalOpen(false)}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors"
+            className="text-slate-400 hover:text-slate-200 transition-colors p-1"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Modal Body */}
-        <div className="p-5 space-y-4 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-700">
+        {/* Modal Body: Scrollable */}
+        <div className="p-5 overflow-y-auto space-y-4 text-xs select-none">
           {/* Title & Phase */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div className="sm:col-span-2">
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+          <div className="grid grid-cols-3 gap-3">
+            <div className="col-span-2 space-y-1">
+              <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400">
                 {t('drillTitleLabel')}
               </label>
               <input
@@ -78,18 +177,17 @@ export const DrillNotesModal: React.FC = () => {
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder={t('drillTitlePlaceholder')}
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500 font-medium"
               />
             </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+            <div className="space-y-1">
+              <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400">
                 {t('drillPhaseLabel')}
               </label>
               <select
                 value={phase}
                 onChange={(e) => setPhase(e.target.value as DrillMetadata['phase'])}
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-emerald-500 font-medium"
+                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-emerald-500 font-medium cursor-pointer"
               >
                 <option value="in-possession">{t('phaseInPossession')}</option>
                 <option value="out-of-possession">{t('phaseOutOfPossession')}</option>
@@ -101,72 +199,77 @@ export const DrillNotesModal: React.FC = () => {
             </div>
           </div>
 
-          {/* Quick Metrics (Dimensions, Duration, Players) */}
-          <div className="grid grid-cols-3 gap-3">
-            <div>
-              <label className="flex items-center gap-1 text-xs font-semibold text-slate-400 mb-1">
-                <Maximize className="w-3.5 h-3.5" /> {t('drillDimensionsLabel')}
+          {/* Quick Metrics: Dimensions, Duration, Players */}
+          <div className="grid grid-cols-3 gap-3 bg-slate-950/60 p-3 rounded-xl border border-slate-800">
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-400 flex items-center gap-1">
+                <Maximize className="w-3.5 h-3.5 text-sky-400" />
+                {t('drillDimensionsLabel')}
               </label>
               <input
                 type="text"
                 value={dimensions}
                 onChange={(e) => setDimensions(e.target.value)}
-                placeholder={t('drillDimensionsPlaceholder')}
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-500"
+                placeholder="40 x 30 m"
+                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-sky-500"
               />
             </div>
-            <div>
-              <label className="flex items-center gap-1 text-xs font-semibold text-slate-400 mb-1">
-                <Clock className="w-3.5 h-3.5" /> {t('drillDurationLabel')}
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-400 flex items-center gap-1">
+                <Clock className="w-3.5 h-3.5 text-amber-400" />
+                {t('drillDurationLabel')}
               </label>
               <input
                 type="text"
                 value={duration}
                 onChange={(e) => setDuration(e.target.value)}
-                placeholder={t('drillDurationPlaceholder')}
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-500"
+                placeholder="15 mins"
+                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-amber-500"
               />
             </div>
-            <div>
-              <label className="flex items-center gap-1 text-xs font-semibold text-slate-400 mb-1">
-                <Users className="w-3.5 h-3.5" /> {t('drillPlayerCountLabel')}
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-400 flex items-center gap-1">
+                <Users className="w-3.5 h-3.5 text-purple-400" />
+                {t('drillPlayerCountLabel')}
               </label>
               <input
                 type="text"
                 value={playerCount}
                 onChange={(e) => setPlayerCount(e.target.value)}
-                placeholder={t('drillPlayerCountPlaceholder')}
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-500"
+                placeholder="8 v 8 + 2 GK"
+                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-purple-500"
               />
             </div>
           </div>
 
-          {/* Objective */}
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+          {/* Drill Tactical Objective */}
+          <div className="space-y-1">
+            <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400">
               {t('drillObjectiveLabel')}
             </label>
             <textarea
+              rows={2}
               value={objective}
               onChange={(e) => setObjective(e.target.value)}
-              rows={2}
               placeholder={t('drillObjectivePlaceholder')}
-              className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500 resize-none leading-relaxed"
+              className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500 resize-none font-medium"
             />
           </div>
 
-          {/* Coaching Points */}
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+          {/* Coaching Key Points Checklist */}
+          <div className="space-y-2">
+            <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400">
               {t('drillCoachingPointsLabel')}
             </label>
-            <div className="space-y-1.5 mb-2 max-h-36 overflow-y-auto pr-1">
+
+            {/* List of existing points */}
+            <div className="space-y-1.5 max-h-36 overflow-y-auto">
               {coachingPoints.map((pt, idx) => (
                 <div
                   key={idx}
-                  className="flex items-center justify-between gap-2 bg-slate-950/70 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-200 group"
+                  className="flex items-center justify-between p-2 rounded-xl bg-slate-950/80 border border-slate-800 text-slate-200 text-xs gap-2"
                 >
-                  <div className="flex items-center gap-2 flex-1">
+                  <div className="flex items-center gap-2 overflow-hidden">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 flex-shrink-0" />
                     <span>{pt}</span>
                   </div>
@@ -204,20 +307,32 @@ export const DrillNotesModal: React.FC = () => {
         </div>
 
         {/* Modal Footer */}
-        <div className="flex items-center justify-end gap-2 px-5 py-3 border-t border-slate-800 bg-slate-850/50">
+        <div className="flex items-center justify-between px-5 py-3 border-t border-slate-800 bg-slate-850/50">
           <button
-            onClick={() => setIsDrillNotesModalOpen(false)}
-            className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors"
+            type="button"
+            onClick={handlePrintSessionSheet}
+            className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-sky-300 border border-slate-700 flex items-center gap-1.5 transition-all active:scale-95"
+            title="Cetak atau Simpan sebagai Dokumen PDF (A4)"
           >
-            {t('cancel')}
+            <Printer className="w-4 h-4 text-sky-400" />
+            <span>Cetak / PDF</span>
           </button>
-          <button
-            onClick={handleSave}
-            className="px-4 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-600/30 flex items-center gap-1.5 transition-all active:scale-95"
-          >
-            <Check className="w-4 h-4" />
-            <span>{t('saveNotes')}</span>
-          </button>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsDrillNotesModalOpen(false)}
+              className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors"
+            >
+              {t('cancel')}
+            </button>
+            <button
+              onClick={handleSave}
+              className="px-4 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-600/30 flex items-center gap-1.5 transition-all active:scale-95"
+            >
+              <Check className="w-4 h-4" />
+              <span>{t('saveNotes')}</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>

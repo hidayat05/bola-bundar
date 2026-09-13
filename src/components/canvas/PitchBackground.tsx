@@ -280,6 +280,11 @@ export const PitchBackground: React.FC<PitchBackgroundProps> = React.memo(({
   } else if (pitchSurface === 'wood') {
     baseColor = '#b45309';
     stripeColor = '#d97706';
+  } else if (pitchSurface === 'dark-board') {
+    baseColor = '#0b132b'; // Deep midnight tactical slate
+    stripeColor = '#0e1738';
+    lineColor = '#38bdf8'; // Electric cyan tactical markings
+    hasStripes = true;
   }
 
   const lineWidth = Math.max(1.5, Math.round(w * 0.003));

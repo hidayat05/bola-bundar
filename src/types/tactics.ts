@@ -1,10 +1,36 @@
 export type PitchType = 'football' | 'mini-soccer' | 'futsal';
 export type PitchView = 'full' | 'half' | 'third';
-export type PitchSurface = 'grass' | 'full-green' | 'turf' | 'wood' | 'blue';
+export type PitchSurface = 'grass' | 'full-green' | 'turf' | 'wood' | 'blue' | 'dark-board';
 export type TeamSide = 'home' | 'away' | 'neutral';
 export type TeamDisplayMode = 'both' | 'single';
 export type TokenStyle = 'jersey' | 'circle';
 export type TargetZoneKey = 'near-post' | 'far-post' | 'penalty-spot' | 'edge-of-box' | 'cutback';
+
+export type TacticalActionZoneType =
+  | 'base'          // Posisi Dasar
+  | 'overlap'       // Overlap Sayap
+  | 'underlap'      // Underlap Half-Space
+  | 'cover'         // Pelapis Pertahanan / Rest Defense
+  | 'press'         // Step-Out Pressing
+  | 'drop-in'       // Turun Menjemput Bola / Bentuk 3 Bek
+  | 'channel-run'   // Tusukan Celah Bek
+  | 'cut-inside'    // Potong ke Kotak Penalti
+  | 'box-finish'    // Kotak Penalti Finishing
+  | 'width'         // Melebar Menyusur Garis
+  | 'paralela'      // Futsal Paralela
+  | 'diagonal';     // Futsal Diagonal Cut
+
+export interface PlayerActionZone {
+  type: TacticalActionZoneType;
+  label: string;
+  bounds: {
+    x: number;      // 0 - 100 (% lebar lapangan)
+    y: number;      // 0 - 100 (% tinggi lapangan)
+    width: number;
+    height: number;
+  };
+  color: string;
+}
 
 export interface PlayerToken {
   id: string;
@@ -20,6 +46,8 @@ export interface PlayerToken {
   customTextColor?: string;
   role?: string;
   isWall?: boolean;
+  subStatus?: 'in' | 'out';
+  activeActionZone?: PlayerActionZone | null;
 }
 
 export interface BallToken {
@@ -28,7 +56,10 @@ export interface BallToken {
   y: number; // 0 - 100 percentage of pitch height
   rotation?: number; // rotation in degrees for rolling/spinning animation
   rotationAxis?: [number, number, number]; // 3D rolling axis [x, y, z]
+  elevation?: number; // 0 (grounded) to 1 (max lofted height)
 }
+
+export type PositionalGridMode = 'none' | '5-corridors' | '20-zones';
 
 export interface TeamConfig {
   name: string;
@@ -38,8 +69,8 @@ export interface TeamConfig {
   goalkeeperColor: string;
 }
 
-export type DrawingType = 'pass' | 'run' | 'dribble' | 'zone';
-export type ActiveTool = 'select' | 'pass' | 'run' | 'dribble' | 'zone' | 'eraser';
+export type DrawingType = 'pass' | 'curved-pass' | 'lofted-pass' | 'run' | 'dribble' | 'zone';
+export type ActiveTool = 'select' | 'pass' | 'curved-pass' | 'lofted-pass' | 'run' | 'dribble' | 'zone' | 'eraser';
 
 export interface DrawingElement {
   id: string;
@@ -49,6 +80,7 @@ export interface DrawingElement {
   dashed?: boolean;
   opacity?: number;
   width?: number;
+  curveDepth?: number;
 }
 
 export type EquipmentType = 'cone' | 'mannequin' | 'pole' | 'mini-goal';

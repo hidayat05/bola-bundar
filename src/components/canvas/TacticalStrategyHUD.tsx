@@ -58,6 +58,16 @@ export const TacticalStrategyHUD: React.FC = () => {
     frames,
     activeFrameIndex,
     setIsStrategyModalOpen,
+    pingBall,
+    pitchType,
+    positionalGridMode,
+    setPositionalGridMode,
+    showRestDefense,
+    setShowRestDefense,
+    showPassingLanes,
+    setShowPassingLanes,
+    futsalRule4Sec,
+    setFutsalRule4Sec,
   } = useTacticsStore(
     useShallow((s) => ({
       showStrategyHUD: s.showStrategyHUD,
@@ -66,6 +76,16 @@ export const TacticalStrategyHUD: React.FC = () => {
       frames: s.frames,
       activeFrameIndex: s.activeFrameIndex,
       setIsStrategyModalOpen: s.setIsStrategyModalOpen,
+      pingBall: s.pingBall,
+      pitchType: s.pitchType,
+      positionalGridMode: s.positionalGridMode,
+      setPositionalGridMode: s.setPositionalGridMode,
+      showRestDefense: s.showRestDefense,
+      setShowRestDefense: s.setShowRestDefense,
+      showPassingLanes: s.showPassingLanes,
+      setShowPassingLanes: s.setShowPassingLanes,
+      futsalRule4Sec: s.futsalRule4Sec,
+      setFutsalRule4Sec: s.setFutsalRule4Sec,
     }))
   );
 
@@ -90,7 +110,7 @@ export const TacticalStrategyHUD: React.FC = () => {
   // Collapsed ultra-compact view: minimal micro-chip at top edge taking zero pitch space
   if (isCollapsed) {
     return (
-      <div className="absolute top-2 left-1/2 -translate-x-1/2 z-30 pointer-events-auto">
+      <div className="absolute top-2 left-1/2 -translate-x-1/2 z-30 pointer-events-auto flex items-center gap-1">
         <button
           onClick={() => setIsCollapsed(false)}
           className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold backdrop-blur-md bg-slate-950/75 border ${phaseConfig.badgeBorder} ${phaseConfig.badgeText} shadow-lg hover:bg-slate-900 transition-all opacity-85 hover:opacity-100`}
@@ -103,6 +123,15 @@ export const TacticalStrategyHUD: React.FC = () => {
           </span>
           <ChevronDown className="w-3 h-3 text-slate-400" />
         </button>
+
+        <button
+          onClick={pingBall}
+          className="p-1 px-2 rounded-full bg-slate-950/85 hover:bg-slate-900 border border-amber-500/50 text-amber-300 text-[10px] font-bold shadow-lg flex items-center gap-1 transition-all active:scale-95"
+          title="Sorot / Temukan Posisi Bola"
+        >
+          <span>⚽</span>
+          <span className="hidden sm:inline">Bola</span>
+        </button>
       </div>
     );
   }
@@ -111,6 +140,7 @@ export const TacticalStrategyHUD: React.FC = () => {
   return (
     <div className="absolute top-2 left-1/2 -translate-x-1/2 z-20 pointer-events-none max-w-[68vw] sm:max-w-xl w-auto px-1 sm:px-2 transition-all">
       <div
+        data-tour="strategy-hud"
         onClick={() => !isPlaying && setIsStrategyModalOpen(true)}
         className="pointer-events-auto backdrop-blur-md bg-slate-950/85 border border-slate-700/60 hover:border-slate-500 rounded-full px-2 sm:px-2.5 py-1 shadow-xl flex items-center gap-1.5 sm:gap-2 transition-all cursor-pointer select-none"
         title="Klik untuk membuka pilihan pola taktik"
@@ -143,6 +173,77 @@ export const TacticalStrategyHUD: React.FC = () => {
 
         {/* Edit & Collapse Icons */}
         <div className="flex items-center gap-0.5 border-l border-slate-800 pl-1">
+          {/* Find Ball Ping Button */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              pingBall();
+            }}
+            className="p-1 rounded-md text-amber-400 hover:text-amber-200 hover:bg-slate-800 transition-colors text-xs"
+            title="Sorot / Temukan Posisi Bola (Ping)"
+          >
+            ⚽
+          </button>
+
+          {/* Positional Grid (Juego de Posicion) Button */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              const next = positionalGridMode === 'none' ? '5-corridors' : positionalGridMode === '5-corridors' ? '20-zones' : 'none';
+              setPositionalGridMode(next);
+            }}
+            className={`p-1 rounded-md transition-colors text-xs ${
+              positionalGridMode !== 'none' ? 'bg-sky-500/30 text-sky-300' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+            }`}
+            title={`Grid Posisi: ${positionalGridMode === 'none' ? 'Mati' : positionalGridMode === '5-corridors' ? '5 Koridor Vertikal' : '20 Zona Juego de Posicion'}`}
+          >
+            📐
+          </button>
+
+          {/* Rest Defense Analyzer Button */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowRestDefense(!showRestDefense);
+            }}
+            className={`p-1 rounded-md transition-colors text-xs ${
+              showRestDefense ? 'bg-emerald-500/30 text-emerald-300' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+            }`}
+            title={`Rest Defense Analyzer (3+2/2+3): ${showRestDefense ? 'Aktif' : 'Nonaktif'}`}
+          >
+            🛡️
+          </button>
+
+          {/* Passing Lanes Analyzer (Open Green vs Blocked Red) */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowPassingLanes(!showPassingLanes);
+            }}
+            className={`p-1 rounded-md transition-colors text-xs ${
+              showPassingLanes ? 'bg-cyan-500/30 text-cyan-300' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+            }`}
+            title={`Passing Lanes (Jalur Umpan Terbuka/Terblokir): ${showPassingLanes ? 'Aktif' : 'Nonaktif'}`}
+          >
+            ⚡
+          </button>
+
+          {/* Futsal 4s Rule Clock */}
+          {pitchType === 'futsal' && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setFutsalRule4Sec(!futsalRule4Sec);
+              }}
+              className={`p-1 rounded-md transition-colors text-xs ${
+                futsalRule4Sec ? 'bg-amber-500/30 text-amber-300' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+              }`}
+              title={`Aturan 4 Detik Futsal: ${futsalRule4Sec ? 'Aktif' : 'Nonaktif'}`}
+            >
+              ⏱️
+            </button>
+          )}
+
           {!isPlaying && (
             <button
               onClick={(e) => {

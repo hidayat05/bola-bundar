@@ -69,6 +69,39 @@ export const DrawingLayer: React.FC<DrawingLayerProps> = React.memo(({ layout, d
     return points;
   };
 
+  // Helper: generate quadratic Bezier curved points for crosses and lobs
+  const generateCurvedPoints = (
+    x1: number,
+    y1: number,
+    x2: number,
+    y2: number,
+    depthRatio = 0.2
+  ): number[] => {
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    const dist = Math.hypot(dx, dy);
+    if (dist < 10) return [x1, y1, x2, y2];
+
+    const nx = -dy / dist;
+    const ny = dx / dist;
+
+    // Normal curve arc height
+    const sagitta = Math.min(80, Math.max(16, dist * depthRatio));
+    const cx = (x1 + x2) / 2 + nx * sagitta;
+    const cy = (y1 + y2) / 2 + ny * sagitta;
+
+    const points: number[] = [];
+    const steps = 18;
+    for (let i = 0; i <= steps; i++) {
+      const t = i / steps;
+      const invT = 1 - t;
+      const px = invT * invT * x1 + 2 * invT * t * cx + t * t * x2;
+      const py = invT * invT * y1 + 2 * invT * t * cy + t * t * y2;
+      points.push(px, py);
+    }
+    return points;
+  };
+
   // Drawing event handlers
   const handleMouseDown = (e: Konva.KonvaEventObject<MouseEvent | TouchEvent>) => {
     if (activeTool === 'select' || activeTool === 'eraser') return;
@@ -117,7 +150,8 @@ export const DrawingLayer: React.FC<DrawingLayerProps> = React.memo(({ layout, d
         color: activeDrawingColor,
         opacity: activeTool === 'zone' ? 0.35 : 0.9,
         width: activeTool === 'zone' ? 1.5 : 3,
-        dashed: activeTool === 'run' || activeTool === 'zone',
+        dashed: activeTool === 'run' || activeTool === 'zone' || activeTool === 'curved-pass' || activeTool === 'lofted-pass',
+        curveDepth: activeTool === 'curved-pass' ? 0.2 : activeTool === 'lofted-pass' ? 0.45 : undefined,
       };
 
       addDrawing(newDrawing);
@@ -224,6 +258,93 @@ export const DrawingLayer: React.FC<DrawingLayerProps> = React.memo(({ layout, d
           );
         }
 
+        // 2.5. Curved Pass Line (Lob / Crossing Parabola)
+        if (draw.type === 'curved-pass') {
+          const curvedPoints = generateCurvedPoints(x1, y1, x2, y2, draw.curveDepth ?? 0.2);
+          const len = curvedPoints.length;
+          const tipX = curvedPoints[len - 2];
+          const tipY = curvedPoints[len - 1];
+          const prevX = curvedPoints[len - 4] ?? x1;
+          const prevY = curvedPoints[len - 3] ?? y1;
+
+          return (
+            <Group
+              key={draw.id}
+              onClick={() => isEraser && removeDrawing(draw.id)}
+              onTap={() => isEraser && removeDrawing(draw.id)}
+              className={isEraser ? 'cursor-pointer' : 'cursor-default'}
+            >
+              <Line
+                points={curvedPoints}
+                stroke={draw.color}
+                strokeWidth={draw.width ?? 3}
+                dash={[6, 4]}
+                lineCap="round"
+                lineJoin="round"
+                shadowColor="#000"
+                shadowBlur={3}
+                shadowOpacity={0.3}
+              />
+              <Arrow
+                points={[prevX, prevY, tipX, tipY]}
+                pointerLength={11}
+                pointerWidth={9}
+                fill={draw.color}
+                stroke={draw.color}
+                strokeWidth={1}
+              />
+            </Group>
+          );
+        }
+
+        // 2.7. Lofted Pass Line (Steep High-Arc — 3D flight indicator)
+        if (draw.type === 'lofted-pass') {
+          const arcPoints = generateCurvedPoints(x1, y1, x2, y2, draw.curveDepth ?? 0.45);
+          const len = arcPoints.length;
+          const tipX = arcPoints[len - 2];
+          const tipY = arcPoints[len - 1];
+          const prevX = arcPoints[len - 4] ?? x1;
+          const prevY = arcPoints[len - 3] ?? y1;
+          // Midpoint for altitude dot
+          const midIdx = Math.floor(len / 2);
+          const midX = arcPoints[midIdx % 2 === 0 ? midIdx : midIdx - 1];
+          const midY = arcPoints[midIdx % 2 === 0 ? midIdx + 1 : midIdx];
+
+          return (
+            <Group
+              key={draw.id}
+              onClick={() => isEraser && removeDrawing(draw.id)}
+              onTap={() => isEraser && removeDrawing(draw.id)}
+              className={isEraser ? 'cursor-pointer' : 'cursor-default'}
+            >
+              <Line
+                points={arcPoints}
+                stroke={draw.color}
+                strokeWidth={draw.width ?? 3}
+                dash={[4, 5]}
+                lineCap="round"
+                lineJoin="round"
+                shadowColor="#000"
+                shadowBlur={4}
+                shadowOpacity={0.35}
+              />
+              {/* Altitude peak dot */}
+              <Group x={midX} y={midY}>
+                <Line points={[0, 0, 0, 14]} stroke={draw.color} strokeWidth={1.5} opacity={0.6} />
+                <Line points={[-5, 14, 5, 14]} stroke={draw.color} strokeWidth={1.5} opacity={0.6} />
+              </Group>
+              <Arrow
+                points={[prevX, prevY, tipX, tipY]}
+                pointerLength={12}
+                pointerWidth={10}
+                fill={draw.color}
+                stroke={draw.color}
+                strokeWidth={1}
+              />
+            </Group>
+          );
+        }
+
         // 3. Passing Arrow (Solid)
         if (draw.type === 'pass') {
           return (
@@ -309,6 +430,78 @@ export const DrawingLayer: React.FC<DrawingLayerProps> = React.memo(({ layout, d
                     ]}
                     pointerLength={10}
                     pointerWidth={8}
+                    fill={activeDrawingColor}
+                    stroke={activeDrawingColor}
+                    strokeWidth={1}
+                  />
+                </>
+              );
+            })()
+          ) : activeTool === 'curved-pass' ? (
+            (() => {
+              const curvedPoints = generateCurvedPoints(
+                currentDraft.startX,
+                currentDraft.startY,
+                currentDraft.currentX,
+                currentDraft.currentY,
+                0.2
+              );
+              const len = curvedPoints.length;
+              return (
+                <>
+                  <Line
+                    points={curvedPoints}
+                    stroke={activeDrawingColor}
+                    strokeWidth={3}
+                    dash={[6, 4]}
+                    lineCap="round"
+                    lineJoin="round"
+                  />
+                  <Arrow
+                    points={[
+                      curvedPoints[len - 4] ?? currentDraft.startX,
+                      curvedPoints[len - 3] ?? currentDraft.startY,
+                      curvedPoints[len - 2],
+                      curvedPoints[len - 1],
+                    ]}
+                    pointerLength={11}
+                    pointerWidth={9}
+                    fill={activeDrawingColor}
+                    stroke={activeDrawingColor}
+                    strokeWidth={1}
+                  />
+                </>
+              );
+            })()
+          ) : activeTool === 'lofted-pass' ? (
+            (() => {
+              const arcPoints = generateCurvedPoints(
+                currentDraft.startX,
+                currentDraft.startY,
+                currentDraft.currentX,
+                currentDraft.currentY,
+                0.45
+              );
+              const len = arcPoints.length;
+              return (
+                <>
+                  <Line
+                    points={arcPoints}
+                    stroke={activeDrawingColor}
+                    strokeWidth={3}
+                    dash={[4, 5]}
+                    lineCap="round"
+                    lineJoin="round"
+                  />
+                  <Arrow
+                    points={[
+                      arcPoints[len - 4] ?? currentDraft.startX,
+                      arcPoints[len - 3] ?? currentDraft.startY,
+                      arcPoints[len - 2],
+                      arcPoints[len - 1],
+                    ]}
+                    pointerLength={12}
+                    pointerWidth={10}
                     fill={activeDrawingColor}
                     stroke={activeDrawingColor}
                     strokeWidth={1}

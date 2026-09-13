@@ -9,9 +9,10 @@ import {
   Trash,
   ChevronLeft,
   ChevronRight,
-  PenTool,
   Target,
   X,
+  CornerUpRight,
+  Wind,
 } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import { useTacticsStore } from '../../store/useTacticsStore';
@@ -72,41 +73,62 @@ export const DrawingToolbar: React.FC = () => {
     label: string;
     description: string;
     icon: React.FC<{ className?: string }>;
+    shortcut: string;
   }[] = [
     {
       id: 'select',
       label: t('toolSelect'),
       description: t('toolSelectDesc'),
+      shortcut: '1',
       icon: MousePointer,
     },
     {
       id: 'pass',
       label: t('toolPass'),
       description: t('toolPassDesc'),
+      shortcut: '2',
       icon: ArrowRight,
+    },
+    {
+      id: 'curved-pass',
+      label: t('toolCurvedPass'),
+      description: t('toolCurvedPassDesc'),
+      shortcut: '3',
+      icon: CornerUpRight,
+    },
+    {
+      id: 'lofted-pass',
+      label: t('toolLoftedPass'),
+      description: t('toolLoftedPassDesc'),
+      shortcut: '4',
+      icon: Wind,
     },
     {
       id: 'run',
       label: t('toolRun'),
       description: t('toolRunDesc'),
+      shortcut: '5',
       icon: MoveRight,
     },
     {
       id: 'dribble',
       label: t('toolDribble'),
       description: t('toolDribbleDesc'),
+      shortcut: '6',
       icon: Spline,
     },
     {
       id: 'zone',
       label: t('toolZone'),
       description: t('toolZoneDesc'),
+      shortcut: '7',
       icon: Square,
     },
     {
       id: 'eraser',
       label: t('toolEraser'),
       description: t('toolEraserDesc'),
+      shortcut: '8',
       icon: Eraser,
     },
   ];
@@ -120,16 +142,23 @@ export const DrawingToolbar: React.FC = () => {
     { color: '#10b981', name: t('colorGreen') },
   ];
 
+  const currentActiveItem = tools.find((t) => t.id === activeTool) || tools[0];
+  const CurrentIcon = currentActiveItem.icon;
+
   if (isCollapsed) {
     return (
       <div data-tour="drawing-toolbar" className="absolute top-2 left-2 sm:top-3 sm:left-3 z-20">
         <button
           onClick={() => setIsCollapsed(false)}
           className="bg-slate-900/95 hover:bg-slate-850 text-slate-200 border border-slate-700/80 shadow-xl p-2 sm:px-2.5 sm:py-1.5 rounded-full sm:rounded-xl font-semibold text-xs flex items-center gap-1.5 backdrop-blur-md active:scale-95 transition-all"
-          title="Buka Bilah Alat Gambar"
+          title={`Alat Aktif: ${currentActiveItem.label}. Klik untuk membuka bilah gambar.`}
         >
-          <PenTool className="w-4 h-4 text-emerald-400" />
-          <span className="hidden sm:inline text-[11px] font-bold">Draw</span>
+          <CurrentIcon className="w-4 h-4 text-emerald-400" />
+          <span
+            className="w-2 h-2 rounded-full border border-white/40 flex-shrink-0"
+            style={{ backgroundColor: activeDrawingColor }}
+          />
+          <span className="hidden sm:inline text-[11px] font-bold">{currentActiveItem.label}</span>
           <ChevronRight className="hidden sm:inline w-3.5 h-3.5 text-slate-400" />
         </button>
       </div>
@@ -139,14 +168,16 @@ export const DrawingToolbar: React.FC = () => {
   return (
     <div
       data-tour="drawing-toolbar"
-      className={`absolute top-2 left-2 sm:top-3 sm:left-3 z-30 flex flex-col sm:flex-row items-center ${
-        isCompact ? 'space-y-1 sm:space-y-0 sm:space-x-1' : 'space-y-1.5 sm:space-y-0 sm:space-x-1.5'
-      } bg-slate-900/95 backdrop-blur-md p-1.5 rounded-2xl sm:rounded-xl border border-slate-700/80 shadow-2xl select-none max-h-[85vh] overflow-y-auto sm:overflow-x-auto scrollbar-none animate-in fade-in slide-in-from-left-2 duration-150`}
+      className={`absolute top-2 left-2 sm:top-3 sm:left-3 z-30 flex ${
+        isCompact
+          ? 'flex-row max-w-[85vw] overflow-x-auto space-x-1'
+          : 'flex-col sm:flex-row space-y-1.5 sm:space-y-0 sm:space-x-1.5'
+      } bg-slate-900/95 backdrop-blur-md p-1.5 rounded-2xl sm:rounded-xl border border-slate-700/80 shadow-2xl select-none scrollbar-none animate-in fade-in slide-in-from-left-2 duration-150`}
     >
       {/* Collapse button */}
       <button
         onClick={() => setIsCollapsed(true)}
-        className="p-1 sm:p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors"
+        className="p-1 sm:p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors flex-shrink-0"
         title="Sembunyikan Bilah Gambar"
       >
         <ChevronLeft className="hidden sm:block w-3.5 h-3.5" />
@@ -163,10 +194,12 @@ export const DrawingToolbar: React.FC = () => {
               key={item.id}
               content={item.label}
               description={item.description}
+              shortcut={item.shortcut}
               position="right"
             >
               <button
                 onClick={() => setActiveTool(item.id)}
+                data-tour={item.id === 'lofted-pass' ? 'tool-lofted-pass' : undefined}
                 className={`p-1.5 sm:p-2 rounded-lg text-xs flex items-center justify-center transition-all ${
                   isActive
                     ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30 font-bold scale-105'

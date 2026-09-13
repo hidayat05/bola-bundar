@@ -10,11 +10,18 @@ import {
   Layers,
   Zap,
   X,
+  Repeat,
+  Volume2,
+  VolumeX,
+  Tv,
 } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import { useTacticsStore } from '../../store/useTacticsStore';
 import { getTacticalPlayPresets } from '../../utils/tacticalPlays';
 import { Tooltip } from '../ui/Tooltip';
+import { TacticalPhase } from '../../types/tactics';
+
+const PHASES: TacticalPhase[] = ['attacking', 'trans-defend', 'defending', 'trans-attack', 'setpiece'];
 
 const PlaybackProgressBar: React.FC = React.memo(() => {
   const isPlaying = useTacticsStore((s) => s.isPlaying);
@@ -39,6 +46,11 @@ export const TimelineBar: React.FC = React.memo(() => {
     activeFrameIndex,
     isPlaying,
     playbackSpeed,
+    isLooping,
+    soundEnabled,
+    toggleLooping,
+    toggleSound,
+    setIsPresentationMode,
     setActiveFrame,
     addFrame,
     duplicateFrame,
@@ -48,6 +60,7 @@ export const TimelineBar: React.FC = React.memo(() => {
     setIsPlaying,
     setPlaybackSpeed,
     setIsStrategyModalOpen,
+    updateFrameStrategy,
   } = useTacticsStore(
     useShallow((s) => ({
       pitchType: s.pitchType,
@@ -55,6 +68,11 @@ export const TimelineBar: React.FC = React.memo(() => {
       activeFrameIndex: s.activeFrameIndex,
       isPlaying: s.isPlaying,
       playbackSpeed: s.playbackSpeed,
+      isLooping: s.isLooping,
+      soundEnabled: s.soundEnabled,
+      toggleLooping: s.toggleLooping,
+      toggleSound: s.toggleSound,
+      setIsPresentationMode: s.setIsPresentationMode,
       setActiveFrame: s.setActiveFrame,
       addFrame: s.addFrame,
       duplicateFrame: s.duplicateFrame,
@@ -64,6 +82,7 @@ export const TimelineBar: React.FC = React.memo(() => {
       setIsPlaying: s.setIsPlaying,
       setPlaybackSpeed: s.setPlaybackSpeed,
       setIsStrategyModalOpen: s.setIsStrategyModalOpen,
+      updateFrameStrategy: s.updateFrameStrategy,
     }))
   );
 
@@ -124,6 +143,17 @@ export const TimelineBar: React.FC = React.memo(() => {
       return;
     }
     setIsPlaying(!isPlaying);
+  };
+
+  const handleCyclePhase = (index: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const current = frames[index]?.phase;
+    const nextIndex = current ? (PHASES.indexOf(current) + 1) % PHASES.length : 0;
+    const nextPhase = PHASES[nextIndex];
+    updateFrameStrategy(index, { phase: nextPhase });
+    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+      navigator.vibrate(10);
+    }
   };
 
   return (
@@ -191,6 +221,49 @@ export const TimelineBar: React.FC = React.memo(() => {
         >
           {playbackSpeed}x
         </button>
+
+        {/* Loop Toggle */}
+        <Tooltip
+          content={isLooping ? 'Matikan Loop (Putar Sekali)' : 'Aktifkan Loop (Putar Berulang 🔁)'}
+          description="Putar animasi secara berulang otomatis tanpa henti"
+          position="top"
+        >
+          <button
+            onClick={toggleLooping}
+            className={`p-1.5 sm:px-2 sm:py-1 rounded-lg border text-xs font-semibold flex items-center gap-1 transition-all active:scale-95 flex-shrink-0 ${
+              isLooping
+                ? 'bg-emerald-600/20 border-emerald-500/60 text-emerald-300 shadow-sm'
+                : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'
+            }`}
+            title="Putar Berulang (Loop)"
+          >
+            <Repeat className={`w-3.5 h-3.5 ${isLooping ? 'text-emerald-400' : ''}`} />
+            <span className="hidden lg:inline text-[11px]">Loop</span>
+          </button>
+        </Tooltip>
+
+        {/* Audio Whistle Toggle */}
+        <Tooltip
+          content={soundEnabled ? 'Matikan Audio Peluit' : 'Nyalakan Audio Peluit Taktis'}
+          description="Efek suara peluit wasit saat kickoff & transisi"
+          position="top"
+        >
+          <button
+            onClick={toggleSound}
+            className={`p-1.5 sm:px-2 sm:py-1 rounded-lg border text-xs font-semibold flex items-center gap-1 transition-all active:scale-95 flex-shrink-0 ${
+              soundEnabled
+                ? 'bg-amber-500/20 border-amber-500/60 text-amber-300 shadow-sm'
+                : 'bg-slate-950 border-slate-800 text-slate-500 hover:text-slate-300'
+            }`}
+            title="Audio Taktis"
+          >
+            {soundEnabled ? (
+              <Volume2 className="w-3.5 h-3.5 text-amber-400" />
+            ) : (
+              <VolumeX className="w-3.5 h-3.5" />
+            )}
+          </button>
+        </Tooltip>
       </div>
 
       {/* Center: Keyframe Timeline Cards */}
@@ -218,21 +291,23 @@ export const TimelineBar: React.FC = React.memo(() => {
                   <span className="hidden sm:inline">{frame.name || `Frame ${index + 1}`}</span>
                 </span>
 
-                {/* Tactical Phase & Strategy Badge */}
-                {frame.phase && (
-                  <span
-                    className={`text-[9px] sm:text-[10px] px-1 sm:px-1.5 py-0.5 rounded font-black flex items-center gap-1 ${
+                {/* Tactical Phase & Strategy Badge (Click to cycle phase) */}
+                {frame.phase ? (
+                  <button
+                    type="button"
+                    onClick={(e) => handleCyclePhase(index, e)}
+                    className={`text-[9px] sm:text-[10px] px-1 sm:px-1.5 py-0.5 rounded font-black flex items-center gap-1 transition-transform hover:scale-105 active:scale-95 cursor-pointer ${
                       frame.phase === 'attacking'
-                        ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-500/40'
+                        ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-900'
                         : frame.phase === 'defending'
-                        ? 'bg-rose-950/80 text-rose-300 border border-rose-500/40'
+                        ? 'bg-rose-950/80 text-rose-300 border border-rose-500/40 hover:bg-rose-900'
                         : frame.phase === 'trans-defend'
-                        ? 'bg-orange-950/80 text-orange-300 border border-orange-500/40'
+                        ? 'bg-orange-950/80 text-orange-300 border border-orange-500/40 hover:bg-orange-900'
                         : frame.phase === 'trans-attack'
-                        ? 'bg-amber-950/80 text-amber-300 border border-amber-500/40'
-                        : 'bg-purple-950/80 text-purple-300 border border-purple-500/40'
+                        ? 'bg-amber-950/80 text-amber-300 border border-amber-500/40 hover:bg-amber-900'
+                        : 'bg-purple-950/80 text-purple-300 border border-purple-500/40 hover:bg-purple-900'
                     }`}
-                    title={frame.strategyName || frame.phase}
+                    title={`Fase Taktis: ${frame.phase}. Klik untuk ganti fase.`}
                   >
                     {frame.phase === 'attacking' && '⚔️'}
                     {frame.phase === 'defending' && '🛡️'}
@@ -240,7 +315,18 @@ export const TimelineBar: React.FC = React.memo(() => {
                     {frame.phase === 'trans-attack' && '⚡'}
                     {frame.phase === 'setpiece' && '🎯'}
                     <span className="hidden xl:inline max-w-[80px] truncate">{frame.strategyName || frame.phase}</span>
-                  </span>
+                  </button>
+                ) : (
+                  isActive && !isPlaying && (
+                    <button
+                      type="button"
+                      onClick={(e) => handleCyclePhase(index, e)}
+                      className="text-[9px] px-1 py-0.5 rounded border border-dashed border-slate-600 text-slate-400 hover:text-emerald-400 hover:border-emerald-500/60 transition-colors"
+                      title="Tambah fase taktis pada frame ini"
+                    >
+                      + Fase
+                    </button>
+                  )
                 )}
 
                 {/* Duration indicator */}
@@ -344,6 +430,28 @@ export const TimelineBar: React.FC = React.memo(() => {
                   </div>
                   <div className="text-[10px] text-slate-400 truncate">
                     Build-up, Gegenpress, Rest-Defense, Corner, dll.
+                  </div>
+                </div>
+              </button>
+
+              {/* Option: Mode Presentasi TV */}
+              <button
+                onClick={() => {
+                  setMobileTacticsMenuOpen(false);
+                  setIsPresentationMode(true);
+                }}
+                className="w-full text-left p-2 rounded-xl bg-sky-950/40 hover:bg-sky-900/50 border border-sky-800/60 hover:border-sky-500/50 transition-all flex items-center gap-2.5 mb-2 group"
+              >
+                <div className="p-2 rounded-lg bg-sky-500/20 text-sky-400 group-hover:scale-105 transition-transform">
+                  <Tv className="w-4 h-4" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-xs font-bold text-sky-200 group-hover:text-sky-100 flex items-center justify-between">
+                    <span>Mode Presentasi (TV)</span>
+                    <span className="text-[10px] text-sky-400 font-mono">Layar Penuh</span>
+                  </div>
+                  <div className="text-[10px] text-slate-400 truncate">
+                    Tampilan bersih tanpa panel edit untuk ruang ganti
                   </div>
                 </div>
               </button>
@@ -503,6 +611,21 @@ export const TimelineBar: React.FC = React.memo(() => {
               </div>
             </Tooltip>
           )}
+
+          {/* Presentation Mode Button */}
+          <Tooltip
+            content="Mode Presentasi Layar Penuh"
+            description="Tampilan bersih lapangan tanpa gangguan toolbar untuk briefing ruang ganti"
+            position="top"
+          >
+            <button
+              onClick={() => setIsPresentationMode(true)}
+              className="px-2.5 py-1.5 rounded-lg border border-sky-500/40 bg-sky-500/10 hover:bg-sky-500/20 text-sky-300 text-xs font-semibold flex items-center gap-1.5 transition-all whitespace-nowrap shadow-sm active:scale-95"
+            >
+              <Tv className="w-3.5 h-3.5 text-sky-400" />
+              <span>Presentasi</span>
+            </button>
+          </Tooltip>
         </div>
       </div>
     </div>

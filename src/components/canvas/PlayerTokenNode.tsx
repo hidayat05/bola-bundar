@@ -533,28 +533,65 @@ export const PlayerTokenNode: React.FC<PlayerTokenNodeProps> = React.memo(({
         hitStrokeWidth={16}
       />
 
+      {/* Visual Sub Status Badge (SUB IN / SUB OUT) */}
+      {player.subStatus && (
+        <Group
+          y={
+            tokenStyle === 'jersey'
+              ? -radius * 1.5 - (isShortScreen ? 7 : 10)
+              : -radius - (isShortScreen ? 7 : 10)
+          }
+          listening={false}
+        >
+          <Rect
+            x={-15}
+            y={0}
+            width={30}
+            height={11}
+            fill={player.subStatus === 'in' ? '#059669' : '#dc2626'}
+            stroke="#ffffff"
+            strokeWidth={0.7}
+            cornerRadius={3}
+            shadowColor="#000"
+            shadowBlur={2}
+            shadowOpacity={0.5}
+          />
+          <Text
+            text={player.subStatus === 'in' ? '▲ IN' : '▼ OUT'}
+            fontSize={7.5}
+            fontFamily="system-ui, sans-serif"
+            fontStyle="bold"
+            fill="#ffffff"
+            align="center"
+            width={30}
+            offsetX={15}
+            y={1.5}
+          />
+        </Group>
+      )}
+
       {/* Name / Role Label Pill under player (clean on compact screens, expands on select/hover) */}
       {(!isShortScreen || isSelected || isHovered) && (
         <Group y={tokenStyle === 'jersey' ? radius * 1.35 + (isShortScreen ? 4 : 8) : radius + (isShortScreen ? 4 : 8)} listening={false}>
           <Rect
-            x={isShortScreen ? -18 : -28}
+            x={isShortScreen ? (player.role ? -25 : -18) : (player.role ? -36 : -28)}
             y={0}
-            width={isShortScreen ? 36 : 56}
+            width={isShortScreen ? (player.role ? 50 : 36) : (player.role ? 72 : 56)}
             height={isShortScreen ? 12 : 14}
             fill="rgba(15, 23, 42, 0.88)"
-            stroke="rgba(255, 255, 255, 0.2)"
-            strokeWidth={0.5}
+            stroke={player.role ? 'rgba(56, 189, 248, 0.5)' : 'rgba(255, 255, 255, 0.2)'}
+            strokeWidth={player.role ? 0.8 : 0.5}
             cornerRadius={3}
           />
           <Text
-            text={player.name}
-            fontSize={isShortScreen ? 7.5 : 9}
+            text={player.role ? `${player.name} [${player.role}]` : player.name}
+            fontSize={isShortScreen ? (player.role ? 7 : 7.5) : (player.role ? 8 : 9)}
             fontFamily="system-ui, sans-serif"
             fontStyle="bold"
-            fill="#f1f5f9"
+            fill={player.role ? '#38bdf8' : '#f1f5f9'}
             align="center"
-            width={isShortScreen ? 36 : 56}
-            offsetX={isShortScreen ? 18 : 28}
+            width={isShortScreen ? (player.role ? 50 : 36) : (player.role ? 72 : 56)}
+            offsetX={isShortScreen ? (player.role ? 25 : 18) : (player.role ? 36 : 28)}
             y={isShortScreen ? 1.5 : 2}
           />
         </Group>

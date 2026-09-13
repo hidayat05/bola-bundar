@@ -6,13 +6,15 @@ import {
   Sparkles,
   Layers,
   Users,
-  Download,
   ChevronRight,
   ChevronLeft,
   X,
   CheckCircle2,
   Lightbulb,
   Crosshair,
+  Wind,
+  Link2,
+  Target,
 } from 'lucide-react';
 import { useTacticsStore } from '../../store/useTacticsStore';
 
@@ -88,7 +90,7 @@ const TOUR_STEPS: TourStep[] = [
   },
   {
     selector: '[data-tour="drawing-toolbar"]',
-    badge: 'Alat Gambar Mengambang (Floating)',
+    badge: 'Alat Gambar Mengambang',
     buttonName: 'Drawing Toolbar (Umpan, Lari, Dribble, Area)',
     title: 'Anotasi & Garis Taktis',
     functionDesc:
@@ -99,6 +101,34 @@ const TOUR_STEPS: TourStep[] = [
     icon: Spline,
     accentColor: 'from-rose-500 to-pink-600',
     placement: 'right',
+  },
+  {
+    selector: '[data-tour="tool-lofted-pass"]',
+    badge: 'Alat Gambar 3D Baru',
+    buttonName: 'Lofted Pass (Arc 3D)',
+    title: 'Umpan Lambung Parabola 3D 🌬️',
+    functionDesc:
+      'Menggambar garis umpan lambung melengkung tinggi. Saat animasi diputar, bola akan terangkat naik secara 3D mengikuti kurva parabola dengan bayangan dinamis.',
+    benefitDesc:
+      'Sangat akurat untuk mensimulasikan umpan crossing sayap, switch play diagonal antar-flank, atau chip pass melewati adangan bek lawan.',
+    hint: 'Garis dilengkapi indikator titik puncak ketinggian (altitude peak) di bagian tengah lengkungan.',
+    icon: Wind,
+    accentColor: 'from-sky-500 to-blue-600',
+    placement: 'right',
+  },
+  {
+    selector: '[data-tour="strategy-hud"]',
+    badge: 'Pill Kontrol HUD Atas',
+    buttonName: 'HUD Taktik, Grid 20-Zona, Rest Defense & 4s Futsal',
+    title: 'Pusat Analitik Elit Real-Time 🎯',
+    functionDesc:
+      'Menampilkan fase taktis tim (Menyerang/Bertahan/Transisi), quick toggle Grid Juego de Posición 20-Zona (📐), Rest Defense Analyzer 3+2 (🛡️), dan Jam Hitung Mundur 4 Detik Futsal (⏱️).',
+    benefitDesc:
+      'Pelatih dapat mengevaluasi overload koridor, struktur pertahanan saat transisi, serta kepatuhan aturan 4 detik futsal secara interaktif.',
+    hint: 'Klik ikon bola (⚽) di HUD untuk memicu sonar pencarian bola jika bola tertutup oleh token pemain.',
+    icon: Target,
+    accentColor: 'from-amber-500 to-rose-600',
+    placement: 'bottom',
   },
   {
     selector: '[data-tour="timeline-controls"]',
@@ -120,7 +150,7 @@ const TOUR_STEPS: TourStep[] = [
     buttonName: 'Pola Lari & Umpan Siap Pakai ⚡',
     title: 'Koleksi Simulasi Taktik Otomatis',
     functionDesc:
-      'Memuat pola kombinasi lari dan operan nyata yang siap ditonton: One-Two Wall Pass, Overlapping Wing-Back, dan Third-Man Run.',
+      'Memuat pola kombinasi lari dan operan nyata yang siap ditonton: One-Two Wall Pass, Overlapping Wing-Back, Third-Man Run, hingga Rotasi Futsal (Paralela, Diagonal, Pisada, Corta-Luz).',
     benefitDesc:
       'Tidak perlu menyusun frame dari nol jika ingin menunjukkan contoh pergerakan membuka ruang dan operan satu-dua kepada pemain.',
     hint: 'Pola taktik ini menyesuaikan secara dinamis tergantung apakah Anda berada di lapangan Sepak Bola, Mini Soccer, atau Futsal.',
@@ -144,16 +174,16 @@ const TOUR_STEPS: TourStep[] = [
   },
   {
     selector: '[data-tour="export-controls"]',
-    badge: 'Navigasi Atas (Top Navbar)',
-    buttonName: 'Ekspor Video, PNG & Proyek JSON',
-    title: 'Bagikan & Simpan Taktik Anda',
+    badge: 'Menu Berkas (Top Navbar)',
+    buttonName: 'Share Link, PNG, Video & JSON',
+    title: 'Bagikan Taktik Instan & Ekspor 🔗',
     functionDesc:
-      'Merekam simulasi animasi ke format video (.webm) dan menyimpan gambar papan berkualitas tinggi (Retina PNG 2x).',
+      'Salin link taktik langsung ke clipboard dengan kompresi LZ-string. Penerima cukup membuka tautan untuk langsung menonton dan memutar taktik tanpa login atau unduh file.',
     benefitDesc:
-      'Bahan presentasi taktik Anda siap dibagikan ke grup WhatsApp tim, media sosial, atau disimpan sebagai arsip latihan pelatih.',
+      'Bahan presentasi taktik Anda siap dibagikan ke grup WhatsApp tim, media sosial, direkam sebagai video (.webm), atau diunduh sebagai Retina PNG 2x.',
     hint: 'Gunakan fitur Export JSON untuk menyimpan file proyek taktik yang bisa diedit kembali kapan saja di kemudian hari.',
-    icon: Download,
-    accentColor: 'from-emerald-500 to-green-600',
+    icon: Link2,
+    accentColor: 'from-emerald-500 to-teal-600',
     placement: 'bottom',
   },
 ];

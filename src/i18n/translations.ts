@@ -36,6 +36,7 @@ export interface Translations {
   surfaceTurf: string;
   surfaceBlue: string;
   surfaceWood: string;
+  surfaceDarkBoard: string;
   teamDisplayMode: string;
   teamDisplayBoth: string;
   teamDisplaySingle: string;
@@ -65,6 +66,9 @@ export interface Translations {
   customColor: string;
   actionSpotlight: string;
   actionSpotlightDesc: string;
+  ballBeacon: string;
+  ballBeaconDesc: string;
+  findBall: string;
   receiverLabel: string;
   passerLabel: string;
   targetRunSpace: string;
@@ -167,6 +171,10 @@ export interface Translations {
   toolSelectDesc: string;
   toolPass: string;
   toolPassDesc: string;
+  toolCurvedPass: string;
+  toolCurvedPassDesc: string;
+  toolLoftedPass: string;
+  toolLoftedPassDesc: string;
   toolRun: string;
   toolRunDesc: string;
   toolDribble: string;
@@ -228,6 +236,7 @@ export const translations: Record<SupportedLanguage, Translations> = {
     surfaceTurf: 'Rumput Sintetis Gelap',
     surfaceBlue: 'Lantai Futsal Biru',
     surfaceWood: 'Lantai Parket Kayu',
+    surfaceDarkBoard: 'Papan Taktis Gelap (Boardroom)',
     teamDisplayMode: 'Mode Tampilan Tim',
     teamDisplayBoth: '2 Tim (Lawan)',
     teamDisplaySingle: '1 Tim (Solo Build-up)',
@@ -257,6 +266,9 @@ export const translations: Record<SupportedLanguage, Translations> = {
     customColor: 'Warna Kustom',
     actionSpotlight: 'Sorotan Umpan & Pergerakan',
     actionSpotlightDesc: 'Highlight otomatis pemain penerima bola, pengumpan, & area lari',
+    ballBeacon: 'Aura & Penanda Posisi Bola',
+    ballBeaconDesc: 'Cahaya sorot emas dan pin penanda broadcast agar bola selalu terlihat jelas di lapangan',
+    findBall: 'Temukan Bola (Ping)',
     receiverLabel: 'PENERIMA',
     passerLabel: 'PENGUMPAN',
     targetRunSpace: 'Ruang Sasaran',
@@ -359,6 +371,10 @@ export const translations: Record<SupportedLanguage, Translations> = {
     toolSelectDesc: 'Pindahkan token pemain/bola & putar arah hadap',
     toolPass: 'Panah Operan',
     toolPassDesc: 'Garis panah solid penunjuk arah operan bola',
+    toolCurvedPass: 'Operan Melengkung (Crossing)',
+    toolCurvedPassDesc: 'Garis lengkung parabola untuk crossing sayap atau umpan lambung',
+    toolLoftedPass: 'Umpan Lambung (Lofted Pass)',
+    toolLoftedPassDesc: 'Lintasan 3D melambung tinggi melewati barisan pertahanan lawan',
     toolRun: 'Jalur Lari (Sprint)',
     toolRunDesc: 'Garis putus-putus pergerakan pemain tanpa bola',
     toolDribble: 'Dribbling',
@@ -419,6 +435,7 @@ export const translations: Record<SupportedLanguage, Translations> = {
     surfaceTurf: 'Dark Green Turf',
     surfaceBlue: 'Futsal Blue Court',
     surfaceWood: 'Parquet Wood Court',
+    surfaceDarkBoard: 'Dark Tactical Boardroom',
     teamDisplayMode: 'Team Display Mode',
     teamDisplayBoth: '2 Teams (Opponent)',
     teamDisplaySingle: '1 Team (Solo Shape)',
@@ -448,6 +465,9 @@ export const translations: Record<SupportedLanguage, Translations> = {
     customColor: 'Custom Color',
     actionSpotlight: 'Pass & Movement Spotlight',
     actionSpotlightDesc: 'Auto-highlight pass receiver, passer, & player run corridors',
+    ballBeacon: 'Ball Beacon & Aura Glow',
+    ballBeaconDesc: 'Golden beacon halo and broadcast pin so the ball is always clearly visible',
+    findBall: 'Find Ball (Ping)',
     receiverLabel: 'RECEIVER',
     passerLabel: 'PASSER',
     targetRunSpace: 'Target Space',
@@ -550,6 +570,10 @@ export const translations: Record<SupportedLanguage, Translations> = {
     toolSelectDesc: 'Move player/ball tokens and rotate facing angle',
     toolPass: 'Pass Arrow',
     toolPassDesc: 'Solid arrow indicating ball passing path',
+    toolCurvedPass: 'Curved Pass (Cross / Lob)',
+    toolCurvedPassDesc: 'Parabolic curved pass line for crosses or lobs',
+    toolLoftedPass: 'Lofted Pass (3D Arc)',
+    toolLoftedPassDesc: '3D high-arc lofted ball — ball rises and descends with physics',
     toolRun: 'Player Run',
     toolRunDesc: 'Dashed line indicating off-the-ball sprint path',
     toolDribble: 'Dribbling',

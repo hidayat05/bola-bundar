@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useTacticsStore } from '../store/useTacticsStore';
 import { PlayerToken, TacticalKeyframe } from '../types/tactics';
+import { soundEffects } from '../utils/soundEffects';
 
 // Smooth cubic ease-in-out
 function easeInOutCubic(t: number): number {
@@ -29,6 +30,7 @@ export function useTacticalPlayback() {
 
   const animRef = useRef<number | null>(null);
   const startTimeRef = useRef<number | null>(null);
+  const lastSegIndexRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (!isPlaying || frames.length <= 1) {
@@ -39,7 +41,13 @@ export function useTacticalPlayback() {
       setInterpolatedFrame(null);
       setPlaybackProgress(0);
       startTimeRef.current = null;
+      lastSegIndexRef.current = null;
       return;
+    }
+
+    // Play referee kickoff whistle when playback starts
+    if (useTacticsStore.getState().soundEnabled) {
+      soundEffects.playWhistle(0.28, 0.22);
     }
 
     // Calculate segment durations
@@ -81,6 +89,19 @@ export function useTacticalPlayback() {
       const elapsed = timestamp - startTimeRef.current;
 
       if (elapsed >= targetElapsed) {
+        // Check for Loop Playback mode
+        const isLooping = useTacticsStore.getState().isLooping;
+        if (isLooping && currentTargetFrame === null) {
+          startTimeRef.current = timestamp;
+          lastSegIndexRef.current = null;
+          setActiveFrame(0);
+          if (useTacticsStore.getState().soundEnabled) {
+            soundEffects.playWhistle(0.2, 0.18);
+          }
+          animRef.current = requestAnimationFrame(step);
+          return;
+        }
+
         // Animation reached target frame or finished all frames
         const finalFrameIndex =
           currentTargetFrame !== null ? currentTargetFrame : frames.length - 1;
@@ -90,6 +111,7 @@ export function useTacticalPlayback() {
         setActiveFrame(finalFrameIndex);
         setPlaybackTargetFrame(null);
         startTimeRef.current = null;
+        lastSegIndexRef.current = null;
         return;
       }
 
@@ -160,24 +182,29 @@ export function useTacticalPlayback() {
       const ballDist = Math.hypot(ballDx, ballDy);
 
       // Pre-accumulate base spin from earlier segments so transitions are continuous
-      let baseSpin = ballA.rotation || 0;
+      let baseSpin = frames[0]?.ball?.rotation || 0;
       for (let s = 0; s < segIndex; s++) {
         const b0 = frames[s].ball;
         const b1 = frames[s + 1].ball;
-        const dX = b1.x - b0.x;
-        const d = Math.hypot(dX, b1.y - b0.y);
-        const dir = dX >= 0 ? 1 : -1;
-        baseSpin += d * 28 * dir;
+        const d = Math.hypot(b1.x - b0.x, b1.y - b0.y);
+        baseSpin += d * 38;
       }
 
-      const currentDir = ballDx >= 0 ? 1 : -1;
-      const currentSegSpin = ballDist * 28 * currentDir * easedT;
+      // Smooth rolling spin proportional to ground travel distance
+      const currentSegSpin = ballDist * 38 * easedT;
       const ballRotation = ((baseSpin + currentSegSpin) % 360 + 360) % 360;
 
       // Calculate 3D rolling axis perpendicular to trajectory on the pitch
+      // Rolling forward in direction (dx, dy) has rolling axis [-dy/d, dx/d, 0]
       const rollAxis: [number, number, number] = ballDist > 0.05
         ? [-ballDy / ballDist, ballDx / ballDist, 0]
-        : [0, 1, 0];
+        : (ballA.rotationAxis || [0, 1, 0]);
+
+      // 3D Lofted Pass Flight (parabolic altitude arc)
+      const hasLoftedDrawing = frameA.drawings?.some((d) => d.type === 'lofted-pass');
+      const isLongAirPass = ballDist > 38;
+      const isLofted = hasLoftedDrawing || isLongAirPass;
+      const passElevation = isLofted ? Math.sin(rawProgress * Math.PI) : 0;
 
       const interpolatedBall = {
         id: ballA.id,
@@ -185,6 +212,7 @@ export function useTacticalPlayback() {
         y: ballA.y + ballDy * easedT,
         rotation: ballRotation,
         rotationAxis: rollAxis,
+        elevation: passElevation,
       };
 
       // Set interpolated frame for live canvas rendering

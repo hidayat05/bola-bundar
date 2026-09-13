@@ -163,7 +163,205 @@ export function getTacticalPlayPresets(pitchType: PitchType): TacticalPlayPreset
       ],
     };
 
-    return [futsalWallPass, futsalParalela];
+
+    // --- Diagonal Rotation ---
+    const futsalDiagonal: TacticalPlayPreset = {
+      id: 'futsal-diagonal',
+      name: 'Diagonal Futsal (Rotasi 45°)',
+      subtitle: 'Gerak Diagonal Membuka Ruang di Antara Dua Bek',
+      description: 'Pivot turun menarik bek, Ala masuk secara diagonal ke kotak penalti untuk menerima umpan terobosan fixo.',
+      frames: [
+        {
+          id: 'f-diag-1',
+          name: 'Frame 1: Pivot Turun — Ciptakan Ruang',
+          duration: 1.3,
+          ball: { id: 'ball-1', x: 35, y: 50 },
+          drawings: [
+            { id: 'd-diag-run1', type: 'run', points: [60, 50, 48, 62], color: '#f59e0b', dashed: true },
+            { id: 'd-diag-run2', type: 'run', points: [46, 30, 72, 52], color: '#38bdf8', dashed: true },
+          ],
+          players: [
+            ...baseHome.map((p, idx) => {
+              if (idx === 0) return { ...p, x: 6, y: 50, rotation: 0 };
+              if (idx === 1) return { ...p, x: 34, y: 50, rotation: 0 }; // Fixo with ball
+              if (idx === 2) return { ...p, x: 46, y: 28, rotation: 30 }; // Ala top
+              if (idx === 3) return { ...p, x: 46, y: 72, rotation: 330 }; // Ala bottom
+              if (idx === 4) return { ...p, x: 60, y: 50, rotation: 0 }; // Pivot dropping
+              return p;
+            }),
+            ...baseAway.map((p, idx) => {
+              if (idx === 0) return { ...p, x: 94, y: 50, rotation: 180 };
+              if (idx === 1) return { ...p, x: 76, y: 38, rotation: 195 };
+              if (idx === 2) return { ...p, x: 76, y: 62, rotation: 165 };
+              if (idx === 3) return { ...p, x: 55, y: 36, rotation: 200 };
+              if (idx === 4) return { ...p, x: 55, y: 64, rotation: 160 };
+              return p;
+            }),
+          ],
+        },
+        {
+          id: 'f-diag-2',
+          name: 'Frame 2: Umpan Terobosan Diagonal',
+          duration: 1.5,
+          ball: { id: 'ball-1', x: 72, y: 52 },
+          drawings: [
+            { id: 'd-diag-pass', type: 'pass', points: [34, 50, 72, 52], color: '#f59e0b' },
+          ],
+          players: [
+            ...baseHome.map((p, idx) => {
+              if (idx === 0) return { ...p, x: 7, y: 50, rotation: 0 };
+              if (idx === 1) return { ...p, x: 34, y: 50, rotation: 0 };
+              if (idx === 2) return { ...p, x: 58, y: 24, rotation: 20 };
+              if (idx === 3) return { ...p, x: 66, y: 72, rotation: 340 };
+              if (idx === 4) return { ...p, x: 72, y: 52, rotation: 0 }; // Pivot receives diagonal
+              return p;
+            }),
+            ...baseAway.map((p, idx) => {
+              if (idx === 0) return { ...p, x: 93, y: 44, rotation: 200 };
+              if (idx === 1) return { ...p, x: 80, y: 36, rotation: 200 };
+              if (idx === 2) return { ...p, x: 80, y: 64, rotation: 160 };
+              if (idx === 3) return { ...p, x: 56, y: 30, rotation: 190 };
+              if (idx === 4) return { ...p, x: 56, y: 70, rotation: 170 };
+              return p;
+            }),
+          ],
+        },
+      ],
+    };
+
+    // --- Pisada (Step-over / Dummy Run) ---
+    const futsalPisada: TacticalPlayPreset = {
+      id: 'futsal-pisada',
+      name: 'Pisada Futsal (Step-Over Screen)',
+      subtitle: 'Pemain Melintas Bola Membingungkan Pressing Lawan',
+      description: 'Fixo maju dan melintas di depan bola tanpa menyentuh (pisada), memancing bek ikut, lalu Ala kiri exploit ruang.',
+      frames: [
+        {
+          id: 'f-pis-1',
+          name: 'Frame 1: Pisada Decoy Run',
+          duration: 1.2,
+          ball: { id: 'ball-1', x: 40, y: 50 },
+          drawings: [
+            { id: 'd-pis-decoy', type: 'run', points: [55, 44, 44, 56], color: '#a78bfa', dashed: true },
+            { id: 'd-pis-ala', type: 'run', points: [40, 72, 70, 54], color: '#38bdf8', dashed: true },
+          ],
+          players: [
+            ...baseHome.map((p, idx) => {
+              if (idx === 0) return { ...p, x: 7, y: 50, rotation: 0 };
+              if (idx === 1) return { ...p, x: 40, y: 50, rotation: 0 }; // Fixo on ball
+              if (idx === 2) return { ...p, x: 55, y: 44, rotation: 35 }; // Pisada runner
+              if (idx === 3) return { ...p, x: 40, y: 72, rotation: 345 }; // Ala lurking
+              if (idx === 4) return { ...p, x: 68, y: 52, rotation: 0 };
+              return p;
+            }),
+            ...baseAway.map((p, idx) => {
+              if (idx === 0) return { ...p, x: 93, y: 50, rotation: 180 };
+              if (idx === 1) return { ...p, x: 72, y: 44, rotation: 195 };
+              if (idx === 2) return { ...p, x: 56, y: 38, rotation: 210 };
+              if (idx === 3) return { ...p, x: 52, y: 60, rotation: 165 };
+              if (idx === 4) return { ...p, x: 38, y: 44, rotation: 200 };
+              return p;
+            }),
+          ],
+        },
+        {
+          id: 'f-pis-2',
+          name: 'Frame 2: Exploit Ruang Post-Pisada',
+          duration: 1.4,
+          ball: { id: 'ball-1', x: 72, y: 56 },
+          drawings: [
+            { id: 'd-pis-pass', type: 'pass', points: [40, 50, 72, 56], color: '#f59e0b' },
+          ],
+          players: [
+            ...baseHome.map((p, idx) => {
+              if (idx === 0) return { ...p, x: 8, y: 50, rotation: 0 };
+              if (idx === 1) return { ...p, x: 40, y: 50, rotation: 0 };
+              if (idx === 2) return { ...p, x: 58, y: 40, rotation: 15 };
+              if (idx === 3) return { ...p, x: 72, y: 56, rotation: 0 }; // Ala receives
+              if (idx === 4) return { ...p, x: 76, y: 38, rotation: 350 };
+              return p;
+            }),
+            ...baseAway.map((p, idx) => {
+              if (idx === 0) return { ...p, x: 92, y: 46, rotation: 200 };
+              if (idx === 1) return { ...p, x: 78, y: 40, rotation: 210 };
+              if (idx === 2) return { ...p, x: 60, y: 36, rotation: 220 };
+              if (idx === 3) return { ...p, x: 54, y: 62, rotation: 155 };
+              if (idx === 4) return { ...p, x: 40, y: 52, rotation: 185 };
+              return p;
+            }),
+          ],
+        },
+      ],
+    };
+
+    // --- Corta-Luz (Cut the Light — Counter-Pressing Trap) ---
+    const futsalCortaLuz: TacticalPlayPreset = {
+      id: 'futsal-corta-luz',
+      name: 'Corta-Luz Futsal (Pressing Trap)',
+      subtitle: 'Pemotong Jalur Cahaya — Pressing Terorganisir 4 Detik',
+      description: 'Saat lawan inisiasi build-up, dua pemain memotong jalur umpan (corta-luz) sementara pivot naik menutup GK. Rule 4 detik aktif.',
+      frames: [
+        {
+          id: 'f-cl-1',
+          name: 'Frame 1: Trigger Pressing Corta-Luz',
+          duration: 1.3,
+          ball: { id: 'ball-1', x: 78, y: 50 },
+          drawings: [
+            { id: 'd-cl-press1', type: 'run', points: [64, 42, 78, 46], color: '#ef4444', dashed: true },
+            { id: 'd-cl-press2', type: 'run', points: [64, 58, 78, 54], color: '#ef4444', dashed: true },
+            { id: 'd-cl-block', type: 'zone', points: [66, 38, 88, 62], color: '#ef4444', opacity: 0.12 },
+          ],
+          players: [
+            ...baseHome.map((p, idx) => {
+              if (idx === 0) return { ...p, x: 8, y: 50, rotation: 0 };
+              if (idx === 1) return { ...p, x: 50, y: 50, rotation: 0 };
+              if (idx === 2) return { ...p, x: 64, y: 40, rotation: 15 }; // Cuts luz top
+              if (idx === 3) return { ...p, x: 64, y: 60, rotation: 345 }; // Cuts luz bottom
+              if (idx === 4) return { ...p, x: 76, y: 28, rotation: 350 }; // Closes GK passing lane
+              return p;
+            }),
+            ...baseAway.map((p, idx) => {
+              if (idx === 0) return { ...p, x: 93, y: 50, rotation: 180 }; // Away GK
+              if (idx === 1) return { ...p, x: 78, y: 50, rotation: 180 }; // Ball carrier (trapped!)
+              if (idx === 2) return { ...p, x: 82, y: 32, rotation: 165 };
+              if (idx === 3) return { ...p, x: 82, y: 68, rotation: 195 };
+              if (idx === 4) return { ...p, x: 60, y: 50, rotation: 180 };
+              return p;
+            }),
+          ],
+        },
+        {
+          id: 'f-cl-2',
+          name: 'Frame 2: Intercept & Transisi Cepat',
+          duration: 1.5,
+          ball: { id: 'ball-1', x: 65, y: 44 },
+          drawings: [
+            { id: 'd-cl-counter', type: 'pass', points: [65, 44, 84, 48], color: '#10b981' },
+            { id: 'd-cl-run', type: 'run', points: [51, 50, 80, 50], color: '#10b981', dashed: true },
+          ],
+          players: [
+            ...baseHome.map((p, idx) => {
+              if (idx === 0) return { ...p, x: 8, y: 50, rotation: 0 };
+              if (idx === 1) return { ...p, x: 54, y: 50, rotation: 0 };
+              if (idx === 2) return { ...p, x: 65, y: 44, rotation: 5 }; // Intercepts
+              if (idx === 3) return { ...p, x: 66, y: 58, rotation: 355 };
+              if (idx === 4) return { ...p, x: 80, y: 48, rotation: 0 }; // Free run to goal
+              return p;
+            }),
+            ...baseAway.map((p, idx) => {
+              if (idx === 0) return { ...p, x: 93, y: 50, rotation: 180 };
+              if (idx === 1) return { ...p, x: 80, y: 52, rotation: 180 };
+              if (idx === 2) return { ...p, x: 78, y: 34, rotation: 175 };
+              if (idx === 3) return { ...p, x: 78, y: 66, rotation: 185 };
+              if (idx === 4) return { ...p, x: 58, y: 50, rotation: 175 };
+              return p;
+            }),
+          ],
+        },
+      ],
+    };
+
+    return [futsalWallPass, futsalParalela, futsalDiagonal, futsalPisada, futsalCortaLuz];
   }
 
   // =============================================================

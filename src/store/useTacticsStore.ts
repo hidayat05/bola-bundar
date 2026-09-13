@@ -18,6 +18,7 @@ import {
   EquipmentItem,
   EquipmentType,
   DrillMetadata,
+  PlayerActionZone,
 } from '../types/tactics';
 import { generateInitialSquad, getFormationsForPitch } from '../utils/formations';
 import { calculatePitchLayout } from '../utils/pitchGeometry';
@@ -76,10 +77,27 @@ interface TacticsState {
   setShowPlayerFOV: (show: boolean) => void;
   showActionSpotlight: boolean;
   setShowActionSpotlight: (show: boolean) => void;
+  showBallBeacon: boolean;
+  setShowBallBeacon: (show: boolean) => void;
+  pingBallTrigger: number;
+  pingBall: () => void;
+  positionalGridMode: 'none' | '5-corridors' | '20-zones';
+  setPositionalGridMode: (mode: 'none' | '5-corridors' | '20-zones') => void;
+  showRestDefense: boolean;
+  setShowRestDefense: (show: boolean) => void;
+  showPassingLanes: boolean;
+  setShowPassingLanes: (show: boolean) => void;
+  showAllActionZones: boolean;
+  setShowAllActionZones: (show: boolean) => void;
+  setPlayerActionZone: (playerId: string, zone: PlayerActionZone | null) => void;
+  futsalRule4Sec: boolean;
+  setFutsalRule4Sec: (show: boolean) => void;
   showStrategyHUD: boolean;
   setShowStrategyHUD: (show: boolean) => void;
   isStrategyModalOpen: boolean;
   setIsStrategyModalOpen: (open: boolean) => void;
+  isShortcutsModalOpen: boolean;
+  setIsShortcutsModalOpen: (open: boolean) => void;
   updateFrameStrategy: (
     frameIndex: number,
     strategy: {
@@ -171,6 +189,7 @@ interface TacticsState {
   updatePlayerPosition: (playerId: string, x: number, y: number, isBench?: boolean) => void;
   updatePlayerRotation: (playerId: string, rotation: number) => void;
   updatePlayer: (playerId: string, updates: Partial<PlayerToken>) => void;
+  shiftPlayers: (playerIds: string[], deltaX: number, deltaY: number) => void;
   swapPlayers: (playerAId: string, playerBId: string) => void;
   addPlayer: (team: TeamSide, isBench?: boolean) => void;
   removePlayer: (playerId: string) => void;
@@ -178,7 +197,7 @@ interface TacticsState {
   applyFormation: (team: TeamSide, presetName: string) => void;
 
   // Ball
-  updateBallPosition: (x: number, y: number, rotation?: number) => void;
+  updateBallPosition: (x: number, y: number, rotation?: number, rotationAxis?: [number, number, number]) => void;
 
   // Drawing Tools
   activeTool: ActiveTool;
@@ -206,6 +225,13 @@ interface TacticsState {
   loadPlayPreset: (frames: TacticalKeyframe[]) => void;
   setIsPlaying: (playing: boolean) => void;
   setPlaybackSpeed: (speed: number) => void;
+  isLooping: boolean;
+  toggleLooping: () => void;
+  isPresentationMode: boolean;
+  setIsPresentationMode: (mode: boolean) => void;
+  soundEnabled: boolean;
+  toggleSound: () => void;
+  substitutePlayer: (benchPlayerId: string, pitchPlayerId: string) => void;
   resetTactics: () => void;
   loadProjectData: (data: TacticsExportData) => void;
 }
@@ -303,6 +329,61 @@ export const useTacticsStore = create<TacticsState>((set, get) => {
     playbackProgress: 0,
     playbackTargetFrame: null,
     isRecording: false,
+    isLooping: false,
+    toggleLooping: () => set((s) => ({ isLooping: !s.isLooping })),
+    isPresentationMode: false,
+    setIsPresentationMode: (isPresentationMode) => set({ isPresentationMode }),
+    soundEnabled: true,
+    toggleSound: () => set((s) => ({ soundEnabled: !s.soundEnabled })),
+
+    substitutePlayer: (benchPlayerId: string, pitchPlayerId: string) => {
+      get().pushHistory();
+      const { frames, activeFrameIndex } = get();
+      const currentFrame = frames[activeFrameIndex];
+      if (!currentFrame) return;
+
+      const benchPlayer = currentFrame.players.find((p) => p.id === benchPlayerId);
+      const pitchPlayer = currentFrame.players.find((p) => p.id === pitchPlayerId);
+      if (!benchPlayer || !pitchPlayer) return;
+
+      // Swap coordinates and bench status with visual sub badges
+      const updatedPlayers = currentFrame.players.map((p) => {
+        if (p.id === benchPlayerId) {
+          return {
+            ...p,
+            x: pitchPlayer.x,
+            y: pitchPlayer.y,
+            rotation: pitchPlayer.rotation,
+            isBench: false,
+            role: pitchPlayer.role,
+            subStatus: 'in' as const,
+          };
+        }
+        if (p.id === pitchPlayerId) {
+          return {
+            ...p,
+            x: benchPlayer.x,
+            y: benchPlayer.y,
+            rotation: benchPlayer.rotation,
+            isBench: true,
+            role: 'SUB',
+            subStatus: 'out' as const,
+          };
+        }
+        return p;
+      });
+
+      const updatedFrames = [...frames];
+      updatedFrames[activeFrameIndex] = {
+        ...currentFrame,
+        players: updatedPlayers,
+      };
+
+      set({
+        frames: updatedFrames,
+        selectedPlayerId: benchPlayerId,
+      });
+    },
 
     setPitchType: (pitchType: PitchType) => {
       // Pick appropriate default surface
@@ -388,10 +469,46 @@ export const useTacticsStore = create<TacticsState>((set, get) => {
     setShowPlayerFOV: (showPlayerFOV) => set({ showPlayerFOV }),
     showActionSpotlight: true,
     setShowActionSpotlight: (showActionSpotlight) => set({ showActionSpotlight }),
+    showBallBeacon: true,
+    setShowBallBeacon: (showBallBeacon) => set({ showBallBeacon }),
+    pingBallTrigger: 0,
+    pingBall: () => set((s) => ({ pingBallTrigger: s.pingBallTrigger + 1 })),
+    positionalGridMode: 'none',
+    setPositionalGridMode: (positionalGridMode) => set({ positionalGridMode }),
+    showRestDefense: false,
+    setShowRestDefense: (showRestDefense) => set({ showRestDefense }),
+    showPassingLanes: false,
+    setShowPassingLanes: (showPassingLanes) => set({ showPassingLanes }),
+    showAllActionZones: false,
+    setShowAllActionZones: (showAllActionZones) => set({ showAllActionZones }),
+    setPlayerActionZone: (playerId: string, zone: PlayerActionZone | null) => {
+      get().pushHistory();
+      const { frames, activeFrameIndex } = get();
+      const currentFrame = frames[activeFrameIndex];
+      if (!currentFrame) return;
+
+      const updatedPlayers = currentFrame.players.map((p) => {
+        if (p.id === playerId) {
+          return {
+            ...p,
+            activeActionZone: zone,
+          };
+        }
+        return p;
+      });
+
+      const updatedFrames = [...frames];
+      updatedFrames[activeFrameIndex] = { ...currentFrame, players: updatedPlayers };
+      set({ frames: updatedFrames });
+    },
+    futsalRule4Sec: false,
+    setFutsalRule4Sec: (futsalRule4Sec) => set({ futsalRule4Sec }),
     showStrategyHUD: true,
     setShowStrategyHUD: (showStrategyHUD) => set({ showStrategyHUD }),
     isStrategyModalOpen: false,
     setIsStrategyModalOpen: (isStrategyModalOpen) => set({ isStrategyModalOpen }),
+    isShortcutsModalOpen: false,
+    setIsShortcutsModalOpen: (isShortcutsModalOpen) => set({ isShortcutsModalOpen }),
 
     // Training Ground Equipment
     equipment: [],
@@ -1191,6 +1308,31 @@ export const useTacticsStore = create<TacticsState>((set, get) => {
       set({ frames: updatedFrames });
     },
 
+    shiftPlayers: (playerIds: string[], deltaX: number, deltaY: number) => {
+      if (!playerIds || playerIds.length === 0) return;
+      get().pushHistory();
+      const { frames, activeFrameIndex } = get();
+      const currentFrame = frames[activeFrameIndex];
+      if (!currentFrame) return;
+
+      const newPlayers = currentFrame.players.map((p) => {
+        if (!playerIds.includes(p.id) || p.isBench) return p;
+        return {
+          ...p,
+          x: Math.max(2, Math.min(98, p.x + deltaX)),
+          y: Math.max(2, Math.min(98, p.y + deltaY)),
+        };
+      });
+
+      const updatedFrames = [...frames];
+      updatedFrames[activeFrameIndex] = { ...currentFrame, players: newPlayers };
+      set({ frames: updatedFrames });
+
+      if (typeof navigator !== 'undefined' && navigator.vibrate) {
+        navigator.vibrate(10);
+      }
+    },
+
     swapPlayers: (playerAId: string, playerBId: string) => {
       get().pushHistory();
       const { frames, activeFrameIndex } = get();
@@ -1201,12 +1343,31 @@ export const useTacticsStore = create<TacticsState>((set, get) => {
       const pB = currentFrame.players.find((p) => p.id === playerBId);
       if (!pA || !pB) return;
 
+      const isSubASubIn = pA.isBench && !pB.isBench;
+      const isSubAOut = !pA.isBench && pB.isBench;
+      const isSubBIn = pB.isBench && !pA.isBench;
+      const isSubBOut = !pA.isBench && pB.isBench;
+
       const newPlayers = currentFrame.players.map((p) => {
         if (p.id === playerAId) {
-          return { ...p, x: pB.x, y: pB.y, rotation: pB.rotation, isBench: pB.isBench };
+          return {
+            ...p,
+            x: pB.x,
+            y: pB.y,
+            rotation: pB.rotation,
+            isBench: pB.isBench,
+            subStatus: isSubASubIn ? ('in' as const) : isSubAOut ? ('out' as const) : p.subStatus,
+          };
         }
         if (p.id === playerBId) {
-          return { ...p, x: pA.x, y: pA.y, rotation: pA.rotation, isBench: pA.isBench };
+          return {
+            ...p,
+            x: pA.x,
+            y: pA.y,
+            rotation: pA.rotation,
+            isBench: pA.isBench,
+            subStatus: isSubBIn ? ('in' as const) : isSubBOut ? ('out' as const) : p.subStatus,
+          };
         }
         return p;
       });
@@ -1214,6 +1375,10 @@ export const useTacticsStore = create<TacticsState>((set, get) => {
       const updatedFrames = [...frames];
       updatedFrames[activeFrameIndex] = { ...currentFrame, players: newPlayers };
       set({ frames: updatedFrames, swapTargetPlayerId: null });
+
+      if (typeof navigator !== 'undefined' && navigator.vibrate) {
+        navigator.vibrate(15);
+      }
     },
 
     addPlayer: (team: TeamSide, isBench = false) => {
@@ -1329,7 +1494,7 @@ export const useTacticsStore = create<TacticsState>((set, get) => {
       set({ frames: updatedFrames });
     },
 
-    updateBallPosition: (x: number, y: number, rotation?: number) => {
+    updateBallPosition: (x: number, y: number, rotation?: number, rotationAxis?: [number, number, number]) => {
       get().pushHistory();
       const { frames, activeFrameIndex } = get();
       const currentFrame = frames[activeFrameIndex];
@@ -1341,13 +1506,20 @@ export const useTacticsStore = create<TacticsState>((set, get) => {
       const dist = Math.hypot(dx, dy);
       const computedRot = rotation !== undefined
         ? rotation
-        : ((prevBall.rotation || 0) + (dx >= 0 ? 1 : -1) * dist * 18) % 360;
+        : ((prevBall.rotation || 0) + dist * 38) % 360;
+
+      const computedAxis: [number, number, number] = rotationAxis !== undefined
+        ? rotationAxis
+        : dist > 0.05
+          ? [-dy / dist, dx / dist, 0]
+          : prevBall.rotationAxis || [0, 1, 0];
 
       const newBall: BallToken = {
         ...currentFrame.ball,
         x: Math.max(0, Math.min(100, x)),
         y: Math.max(0, Math.min(100, y)),
         rotation: Math.round(computedRot * 10) / 10,
+        rotationAxis: computedAxis,
       };
 
       const updatedFrames = [...frames];
@@ -1643,6 +1815,13 @@ export const useTacticsStore = create<TacticsState>((set, get) => {
     resetTactics: () => {
       const { pitchType } = get();
       const newFrame = createInitialKeyframe(pitchType);
+      try {
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('bola_bundar_autosave_v1');
+        }
+      } catch {
+        // ignore
+      }
       set({
         frames: [newFrame],
         equipment: [],
