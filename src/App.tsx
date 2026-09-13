@@ -11,6 +11,8 @@ import { Users, Sliders, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { GuidedTour } from './components/ui/GuidedTour';
 import { SplashScreen } from './components/ui/SplashScreen';
 import { SetpiecePresetsModal } from './components/setpiece/SetpiecePresetsModal';
+import { DrillNotesModal } from './components/training/DrillNotesModal';
+import { TacticalStrategyModal } from './components/modals/TacticalStrategyModal';
 
 export const App: React.FC = () => {
   const stageRef = useRef<Konva.Stage>(null);
@@ -27,6 +29,45 @@ export const App: React.FC = () => {
 
   const selectedPlayerId = useTacticsStore((s) => s.selectedPlayerId);
   const isSetpieceMode = useTacticsStore((s) => s.isSetpieceMode);
+  const undo = useTacticsStore((s) => s.undo);
+  const redo = useTacticsStore((s) => s.redo);
+  const selectedEquipmentId = useTacticsStore((s) => s.selectedEquipmentId);
+  const deleteEquipment = useTacticsStore((s) => s.deleteEquipment);
+
+  // Keyboard Shortcuts: Undo (Ctrl+Z), Redo (Ctrl+Y / Cmd+Shift+Z), Delete equipment
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement ||
+        e.target instanceof HTMLSelectElement
+      ) {
+        return;
+      }
+
+      // Undo: Ctrl+Z or Cmd+Z (without Shift)
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        undo();
+      }
+      // Redo: Ctrl+Y or Cmd+Shift+Z
+      else if (
+        ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') ||
+        ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'z')
+      ) {
+        e.preventDefault();
+        redo();
+      }
+      // Delete equipment
+      else if ((e.key === 'Delete' || e.key === 'Backspace') && selectedEquipmentId) {
+        e.preventDefault();
+        deleteEquipment(selectedEquipmentId);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [undo, redo, selectedEquipmentId, deleteEquipment]);
 
   // Height-aware compact detection (width < 1024 or height <= 520 for mobile landscape)
   const [isCompact, setIsCompact] = useState(() => {
@@ -96,6 +137,12 @@ export const App: React.FC = () => {
       {/* 0. Setpiece Routine Presets Modal */}
       <SetpiecePresetsModal />
 
+      {/* 0. Drill Notes & Coaching Points Modal */}
+      <DrillNotesModal />
+
+      {/* 0. Tactical Strategy & Keyframe Phases Modal */}
+      <TacticalStrategyModal />
+
       {/* 1. Top Navbar Controls */}
       <TopNavbar
         stageRef={stageRef}
@@ -111,13 +158,14 @@ export const App: React.FC = () => {
 
           {/* Floating Drawer Trigger Button (Visible when screen is compact, but hidden in setpiece mode) */}
           {isCompact && !isSetpieceMode && (
-            <div className="absolute bottom-3 right-3 z-20">
+            <div className="absolute top-2 right-2 sm:top-3 sm:right-3 z-20">
               <button
                 onClick={() => setMobileDrawerOpen(true)}
-                className="bg-slate-900/95 hover:bg-slate-800 text-slate-100 border border-slate-700/90 shadow-2xl px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-full font-bold text-xs flex items-center gap-2 backdrop-blur-md active:scale-95 transition-all"
+                className="bg-slate-900/95 hover:bg-slate-800 text-slate-100 border border-slate-700/90 shadow-2xl p-2 sm:px-3 sm:py-1.5 rounded-full font-bold text-xs flex items-center gap-1.5 backdrop-blur-md active:scale-95 transition-all"
+                title="Buka Daftar Squad & Token Inspector"
               >
-                <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400" />
-                <span>Squad / Tokens</span>
+                <Users className="w-4 h-4 text-emerald-400" />
+                <span className="hidden xs:inline text-[11px] font-bold">Squad</span>
                 {selectedPlayerId && (
                   <span className="w-2 h-2 rounded-full bg-sky-400 animate-pulse" />
                 )}

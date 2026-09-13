@@ -1,5 +1,14 @@
 import Konva from 'konva';
-import { TacticsExportData, TacticalKeyframe, TeamConfig, PitchType, PitchView, PitchSurface } from '../types/tactics';
+import {
+  TacticsExportData,
+  TacticalKeyframe,
+  TeamConfig,
+  PitchType,
+  PitchView,
+  PitchSurface,
+  EquipmentItem,
+  DrillMetadata,
+} from '../types/tactics';
 
 export function exportSnapshotToPng(stage: Konva.Stage, frameName = 'Frame') {
   try {
@@ -30,6 +39,8 @@ export function exportTacticsToJson(data: {
   homeTeam: TeamConfig;
   awayTeam: TeamConfig;
   frames: TacticalKeyframe[];
+  equipment?: EquipmentItem[];
+  drillNotes?: DrillMetadata;
 }) {
   try {
     const exportData: TacticsExportData = {
@@ -124,11 +135,22 @@ export class CanvasVideoRecorder {
       const renderTick = () => {
         if (!this.recordingCtx || !this.recordingCanvas) return;
         try {
-          const compCanvas = stage.toCanvas();
           this.recordingCtx.clearRect(0, 0, width, height);
-          this.recordingCtx.drawImage(compCanvas, 0, 0, width, height);
+          const layers = stage.getLayers();
+          for (let i = 0; i < layers.length; i++) {
+            const c = layers[i].getCanvas()._canvas;
+            if (c) {
+              this.recordingCtx.drawImage(c, 0, 0, width, height);
+            }
+          }
         } catch {
-          // ignore transient render frame drops
+          // fallback to composite canvas if direct layer access fails
+          try {
+            const compCanvas = stage.toCanvas();
+            this.recordingCtx.drawImage(compCanvas, 0, 0, width, height);
+          } catch {
+            // ignore transient render frame drops
+          }
         }
         this.animationFrameId = requestAnimationFrame(renderTick);
       };

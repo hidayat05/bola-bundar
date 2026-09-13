@@ -171,8 +171,27 @@ export const GuidedTour: React.FC<GuidedTourProps> = ({ isOpen, onClose }) => {
 
   const step = TOUR_STEPS[currentStep];
 
+  const handleSkip = React.useCallback(() => {
+    localStorage.setItem('bola_bundar_tour_dismissed', 'true');
+    onClose();
+  }, [onClose]);
+
+  const handleNext = React.useCallback(() => {
+    if (currentStep < TOUR_STEPS.length - 1) {
+      setCurrentStep((prev) => prev + 1);
+    } else {
+      handleSkip();
+    }
+  }, [currentStep, handleSkip]);
+
+  const handlePrev = React.useCallback(() => {
+    if (currentStep > 0) {
+      setCurrentStep((prev) => prev - 1);
+    }
+  }, [currentStep]);
+
   // Update bounding rect of target element
-  const updateTargetRect = () => {
+  const updateTargetRect = React.useCallback(() => {
     if (!isOpen || !step.selector) {
       setTargetRect(null);
       return;
@@ -185,7 +204,7 @@ export const GuidedTour: React.FC<GuidedTourProps> = ({ isOpen, onClose }) => {
     } else {
       setTargetRect(null);
     }
-  };
+  }, [isOpen, step.selector]);
 
   useEffect(() => {
     updateTargetRect();
@@ -211,26 +230,7 @@ export const GuidedTour: React.FC<GuidedTourProps> = ({ isOpen, onClose }) => {
       window.removeEventListener('scroll', updateTargetRect, true);
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [currentStep, isOpen]);
-
-  const handleSkip = () => {
-    localStorage.setItem('bola_bundar_tour_dismissed', 'true');
-    onClose();
-  };
-
-  const handleNext = () => {
-    if (currentStep < TOUR_STEPS.length - 1) {
-      setCurrentStep(currentStep + 1);
-    } else {
-      handleSkip();
-    }
-  };
-
-  const handlePrev = () => {
-    if (currentStep > 0) {
-      setCurrentStep(currentStep - 1);
-    }
-  };
+  }, [updateTargetRect, handleSkip, handleNext, handlePrev]);
 
   if (!isOpen) return null;
 

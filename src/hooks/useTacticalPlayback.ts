@@ -19,6 +19,8 @@ export function useTacticalPlayback() {
     frames,
     isPlaying,
     playbackSpeed,
+    playbackTargetFrame,
+    setPlaybackTargetFrame,
     setIsPlaying,
     setInterpolatedFrame,
     setPlaybackProgress,
@@ -49,19 +51,44 @@ export function useTacticalPlayback() {
 
     const totalDuration = segmentDurations.reduce((acc, d) => acc + d, 0);
 
+    // If playbackTargetFrame is specified, determine when animation should conclude
+    const currentTargetFrame = useTacticsStore.getState().playbackTargetFrame;
+    let targetElapsed = totalDuration;
+    if (
+      currentTargetFrame !== null &&
+      currentTargetFrame > 0 &&
+      currentTargetFrame < frames.length
+    ) {
+      targetElapsed = 0;
+      for (let i = 0; i < currentTargetFrame; i++) {
+        targetElapsed += segmentDurations[i];
+      }
+    }
+
     const step = (timestamp: number) => {
       if (!startTimeRef.current) {
-        startTimeRef.current = timestamp;
+        let initialElapsed = 0;
+        const currentActive = useTacticsStore.getState().activeFrameIndex;
+        // If active frame is before the last frame, start playback from current active frame!
+        if (currentActive < segmentDurations.length) {
+          for (let i = 0; i < currentActive; i++) {
+            initialElapsed += segmentDurations[i];
+          }
+        }
+        startTimeRef.current = timestamp - initialElapsed;
       }
 
       const elapsed = timestamp - startTimeRef.current;
 
-      if (elapsed >= totalDuration) {
-        // Animation finished
+      if (elapsed >= targetElapsed) {
+        // Animation reached target frame or finished all frames
+        const finalFrameIndex =
+          currentTargetFrame !== null ? currentTargetFrame : frames.length - 1;
         setIsPlaying(false);
         setInterpolatedFrame(null);
-        setPlaybackProgress(1);
-        setActiveFrame(frames.length - 1);
+        setPlaybackProgress(currentTargetFrame !== null ? 1 : Math.min(1, elapsed / totalDuration));
+        setActiveFrame(finalFrameIndex);
+        setPlaybackTargetFrame(null);
         startTimeRef.current = null;
         return;
       }
@@ -74,10 +101,10 @@ export function useTacticalPlayback() {
 
       for (let i = 0; i < segmentDurations.length; i++) {
         const d = segmentDurations[i];
-        if (elapsed <= accumulated + d) {
+        if (elapsed < accumulated + d || i === segmentDurations.length - 1) {
           segIndex = i;
           segDuration = d;
-          segLocalTime = elapsed - accumulated;
+          segLocalTime = Math.max(0, elapsed - accumulated);
           break;
         }
         accumulated += d;
@@ -125,23 +152,56 @@ export function useTacticalPlayback() {
         }
       }
 
-      // Interpolate ball
+      // Interpolate ball with natural rolling spin
       const ballA = frameA.ball;
       const ballB = frameB.ball;
+      const ballDx = ballB.x - ballA.x;
+      const ballDy = ballB.y - ballA.y;
+      const ballDist = Math.hypot(ballDx, ballDy);
+
+      // Pre-accumulate base spin from earlier segments so transitions are continuous
+      let baseSpin = ballA.rotation || 0;
+      for (let s = 0; s < segIndex; s++) {
+        const b0 = frames[s].ball;
+        const b1 = frames[s + 1].ball;
+        const dX = b1.x - b0.x;
+        const d = Math.hypot(dX, b1.y - b0.y);
+        const dir = dX >= 0 ? 1 : -1;
+        baseSpin += d * 28 * dir;
+      }
+
+      const currentDir = ballDx >= 0 ? 1 : -1;
+      const currentSegSpin = ballDist * 28 * currentDir * easedT;
+      const ballRotation = ((baseSpin + currentSegSpin) % 360 + 360) % 360;
+
+      // Calculate 3D rolling axis perpendicular to trajectory on the pitch
+      const rollAxis: [number, number, number] = ballDist > 0.05
+        ? [-ballDy / ballDist, ballDx / ballDist, 0]
+        : [0, 1, 0];
+
       const interpolatedBall = {
         id: ballA.id,
-        x: ballA.x + (ballB.x - ballA.x) * easedT,
-        y: ballA.y + (ballB.y - ballA.y) * easedT,
+        x: ballA.x + ballDx * easedT,
+        y: ballA.y + ballDy * easedT,
+        rotation: ballRotation,
+        rotationAxis: rollAxis,
       };
 
       // Set interpolated frame for live canvas rendering
+      const activeMeta = rawProgress < 0.5 ? frameA : frameB;
       const currentInterp: TacticalKeyframe = {
         id: `interp-${segIndex}`,
         name: `Tween ${segIndex + 1} -> ${segIndex + 2}`,
+        phase: activeMeta.phase,
+        strategyName: activeMeta.strategyName,
+        strategyInstruction: activeMeta.strategyInstruction,
+        strategyPresetId: activeMeta.strategyPresetId,
         players: interpolatedPlayers,
         ball: interpolatedBall,
         drawings: rawProgress < 0.5 ? frameA.drawings : frameB.drawings,
         duration: frameA.duration,
+        activeSegmentIndex: segIndex,
+        rawProgress: rawProgress,
       };
 
       setInterpolatedFrame(currentInterp);
@@ -161,6 +221,8 @@ export function useTacticalPlayback() {
     isPlaying,
     frames,
     playbackSpeed,
+    playbackTargetFrame,
+    setPlaybackTargetFrame,
     setIsPlaying,
     setInterpolatedFrame,
     setPlaybackProgress,

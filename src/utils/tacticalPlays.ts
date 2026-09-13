@@ -10,10 +10,337 @@ export interface TacticalPlayPreset {
 }
 
 export function getTacticalPlayPresets(pitchType: PitchType): TacticalPlayPreset[] {
-  if (pitchType !== 'football') {
-    return [];
+  // =============================================================
+  // 1. FUTSAL (5 vs 5) PLAYS
+  // =============================================================
+  if (pitchType === 'futsal') {
+    const baseHome = generateInitialSquad('home', 'futsal', 5, 3);
+    const baseAway = generateInitialSquad('away', 'futsal', 5, 3);
+
+    const futsalWallPass: TacticalPlayPreset = {
+      id: 'futsal-wall-pass',
+      name: 'Wall-Pass 1-2 Ala & Pivot',
+      subtitle: 'Kombinasi Pantulan Cepat Menembus Pertahanan',
+      description: 'Ala kiri mengoper bola ke Pivot, langsung sprint menyelinap di belakang bek lawan menyambut umpan pantul di muka gawang.',
+      frames: [
+        {
+          id: 'f-wp-1',
+          name: 'Frame 1: Operan Inisiasi ke Pivot',
+          duration: 1.4,
+          ball: { id: 'ball-1', x: 44, y: 24 },
+          drawings: [
+            {
+              id: 'd-f-pass-1',
+              type: 'pass',
+              points: [44, 24, 72, 45],
+              color: '#f59e0b',
+            },
+            {
+              id: 'd-f-run-1',
+              type: 'run',
+              points: [44, 22, 68, 30],
+              color: '#38bdf8',
+              dashed: true,
+            },
+          ],
+          players: [
+            ...baseHome.map((p, idx) => {
+              if (idx === 0) return { ...p, x: 6, y: 50, rotation: 0 }; // GK
+              if (idx === 1) return { ...p, x: 26, y: 48, rotation: 10 }; // Fixo
+              if (idx === 2) return { ...p, x: 44, y: 22, rotation: 25 }; // Ala L (on ball)
+              if (idx === 3) return { ...p, x: 40, y: 78, rotation: 350 }; // Ala R
+              if (idx === 4) return { ...p, x: 74, y: 46, rotation: 195 }; // Pivot checks back
+              return p;
+            }),
+            ...baseAway.map((p, idx) => {
+              if (idx === 0) return { ...p, x: 94, y: 50, rotation: 180 };
+              if (idx === 1) return { ...p, x: 78, y: 48, rotation: 180 }; // Fixo marking Pivot
+              if (idx === 2) return { ...p, x: 50, y: 28, rotation: 200 }; // Ala pressing
+              if (idx === 3) return { ...p, x: 46, y: 72, rotation: 160 };
+              if (idx === 4) return { ...p, x: 32, y: 48, rotation: 180 };
+              return p;
+            }),
+          ],
+        },
+        {
+          id: 'f-wp-2',
+          name: 'Frame 2: Wall-Pass Layoff & Finishing',
+          duration: 1.5,
+          ball: { id: 'ball-1', x: 80, y: 34 },
+          drawings: [],
+          players: [
+            ...baseHome.map((p, idx) => {
+              if (idx === 0) return { ...p, x: 7, y: 50, rotation: 0 };
+              if (idx === 1) return { ...p, x: 30, y: 48, rotation: 10 };
+              if (idx === 2) return { ...p, x: 78, y: 34, rotation: 10 }; // Ala receives in stride!
+              if (idx === 3) return { ...p, x: 52, y: 74, rotation: 345 };
+              if (idx === 4) return { ...p, x: 70, y: 54, rotation: 40 }; // Pivot deflects pass
+              return p;
+            }),
+            ...baseAway.map((p, idx) => {
+              if (idx === 0) return { ...p, x: 92, y: 42, rotation: 220 }; // GK rushes to angle
+              if (idx === 1) return { ...p, x: 76, y: 46, rotation: 180 };
+              if (idx === 2) return { ...p, x: 62, y: 32, rotation: 10 }; // beaten on sprint
+              if (idx === 3) return { ...p, x: 48, y: 70, rotation: 160 };
+              if (idx === 4) return { ...p, x: 34, y: 48, rotation: 180 };
+              return p;
+            }),
+          ],
+        },
+      ],
+    };
+
+    const futsalParalela: TacticalPlayPreset = {
+      id: 'futsal-paralela',
+      name: 'Paralela Futsal (Sideline Run)',
+      subtitle: 'Operan Sejajar Garis Tepi Membongkar Flank',
+      description: 'Fixo melepas umpan mendatar menyusur garis tepi lapangan, Ala sprint memotong bek lawan untuk menusuk ke gawang.',
+      frames: [
+        {
+          id: 'f-par-1',
+          name: 'Frame 1: Inisiasi Umpan Sejajar Garis',
+          duration: 1.4,
+          ball: { id: 'ball-1', x: 28, y: 16 },
+          drawings: [
+            {
+              id: 'd-f-par-pass',
+              type: 'pass',
+              points: [28, 16, 70, 16],
+              color: '#f59e0b',
+            },
+            {
+              id: 'd-f-par-run',
+              type: 'run',
+              points: [46, 26, 72, 18],
+              color: '#38bdf8',
+              dashed: true,
+            },
+          ],
+          players: [
+            ...baseHome.map((p, idx) => {
+              if (idx === 0) return { ...p, x: 6, y: 50, rotation: 0 };
+              if (idx === 1) return { ...p, x: 26, y: 18, rotation: 15 }; // Fixo on flank
+              if (idx === 2) return { ...p, x: 46, y: 26, rotation: 10 }; // Ala preparing sprint
+              if (idx === 3) return { ...p, x: 42, y: 76, rotation: 350 };
+              if (idx === 4) return { ...p, x: 66, y: 54, rotation: 0 };
+              return p;
+            }),
+            ...baseAway.map((p, idx) => {
+              if (idx === 0) return { ...p, x: 94, y: 50, rotation: 180 };
+              if (idx === 1) return { ...p, x: 76, y: 44, rotation: 180 };
+              if (idx === 2) return { ...p, x: 54, y: 22, rotation: 190 }; // Ala out of position
+              if (idx === 3) return { ...p, x: 46, y: 70, rotation: 170 };
+              if (idx === 4) return { ...p, x: 38, y: 32, rotation: 200 };
+              return p;
+            }),
+          ],
+        },
+        {
+          id: 'f-par-2',
+          name: 'Frame 2: Penetrasi Garis & Cut-Inside',
+          duration: 1.5,
+          ball: { id: 'ball-1', x: 74, y: 18 },
+          drawings: [],
+          players: [
+            ...baseHome.map((p, idx) => {
+              if (idx === 0) return { ...p, x: 7, y: 50, rotation: 0 };
+              if (idx === 1) return { ...p, x: 32, y: 22, rotation: 10 };
+              if (idx === 2) return { ...p, x: 74, y: 18, rotation: 0 }; // Ala carries ball
+              if (idx === 3) return { ...p, x: 50, y: 72, rotation: 350 };
+              if (idx === 4) return { ...p, x: 78, y: 48, rotation: 0 }; // Pivot ready for tap-in
+              return p;
+            }),
+            ...baseAway.map((p, idx) => {
+              if (idx === 0) return { ...p, x: 93, y: 42, rotation: 210 };
+              if (idx === 1) return { ...p, x: 80, y: 36, rotation: 220 };
+              if (idx === 2) return { ...p, x: 64, y: 22, rotation: 0 };
+              if (idx === 3) return { ...p, x: 52, y: 68, rotation: 170 };
+              if (idx === 4) return { ...p, x: 40, y: 32, rotation: 190 };
+              return p;
+            }),
+          ],
+        },
+      ],
+    };
+
+    return [futsalWallPass, futsalParalela];
   }
 
+  // =============================================================
+  // 2. MINI SOCCER (7 vs 7) PLAYS
+  // =============================================================
+  if (pitchType === 'mini-soccer') {
+    const baseHome = generateInitialSquad('home', 'mini-soccer', 7, 3);
+    const baseAway = generateInitialSquad('away', 'mini-soccer', 7, 3);
+
+    const miniOverlapPlay: TacticalPlayPreset = {
+      id: 'mini-overlap-cutback',
+      name: 'Overlap Bek Sayap & Cutback 7v7',
+      subtitle: 'Kombinasi Sayap Menghasilkan Peluang Terbuka',
+      description: 'Winger kiri menahan bola menarik bek kanan lawan, bek kiri melakukan overlap sprint menyusuri flank luar lalu melepas umpan tarik (cutback) ke Striker.',
+      frames: [
+        {
+          id: 'm-ov-1',
+          name: 'Frame 1: Penahanan Bola & Overlap Sprint',
+          duration: 1.5,
+          ball: { id: 'ball-1', x: 52, y: 22 },
+          drawings: [
+            {
+              id: 'd-m-run-lb',
+              type: 'run',
+              points: [28, 22, 68, 14],
+              color: '#38bdf8',
+              dashed: true,
+            },
+            {
+              id: 'd-m-pass-through',
+              type: 'pass',
+              points: [52, 22, 70, 15],
+              color: '#f59e0b',
+            },
+          ],
+          players: [
+            ...baseHome.map((p, idx) => {
+              if (idx === 0) return { ...p, x: 7, y: 50, rotation: 0 };
+              if (idx === 1) return { ...p, x: 26, y: 44, rotation: 15 };
+              if (idx === 2) return { ...p, x: 28, y: 22, rotation: 15 }; // LB starting overlap sprint
+              if (idx === 3) return { ...p, x: 26, y: 72, rotation: 345 };
+              if (idx === 4) return { ...p, x: 42, y: 50, rotation: 10 };
+              if (idx === 5) return { ...p, x: 52, y: 22, rotation: 20 }; // Winger holding ball
+              if (idx === 6) return { ...p, x: 65, y: 50, rotation: 0 }; // Striker
+              return p;
+            }),
+            ...baseAway.map((p, idx) => {
+              if (idx === 0) return { ...p, x: 94, y: 50, rotation: 180 };
+              if (idx === 1) return { ...p, x: 76, y: 48, rotation: 180 };
+              if (idx === 2) return { ...p, x: 58, y: 24, rotation: 195 }; // RB engaged on winger
+              if (idx === 3) return { ...p, x: 74, y: 74, rotation: 170 };
+              if (idx === 4) return { ...p, x: 56, y: 45, rotation: 180 };
+              if (idx === 5) return { ...p, x: 54, y: 64, rotation: 175 };
+              if (idx === 6) return { ...p, x: 38, y: 50, rotation: 180 };
+              return p;
+            }),
+          ],
+        },
+        {
+          id: 'm-ov-2',
+          name: 'Frame 2: Cutback Pass ke Kotak Penalti',
+          duration: 1.5,
+          ball: { id: 'ball-1', x: 72, y: 16 },
+          drawings: [
+            {
+              id: 'd-m-cutback',
+              type: 'pass',
+              points: [72, 16, 78, 48],
+              color: '#f59e0b',
+            },
+          ],
+          players: [
+            ...baseHome.map((p, idx) => {
+              if (idx === 0) return { ...p, x: 8, y: 50, rotation: 0 };
+              if (idx === 1) return { ...p, x: 30, y: 45, rotation: 10 };
+              if (idx === 2) return { ...p, x: 72, y: 16, rotation: 10 }; // LB crosses ball
+              if (idx === 3) return { ...p, x: 30, y: 70, rotation: 350 };
+              if (idx === 4) return { ...p, x: 54, y: 44, rotation: 15 };
+              if (idx === 5) return { ...p, x: 58, y: 26, rotation: 15 };
+              if (idx === 6) return { ...p, x: 76, y: 48, rotation: 0 }; // Striker finishing
+              return p;
+            }),
+            ...baseAway.map((p, idx) => {
+              if (idx === 0) return { ...p, x: 94, y: 46, rotation: 220 };
+              if (idx === 1) return { ...p, x: 78, y: 46, rotation: 180 };
+              if (idx === 2) return { ...p, x: 68, y: 24, rotation: 0 };
+              if (idx === 3) return { ...p, x: 76, y: 72, rotation: 170 };
+              if (idx === 4) return { ...p, x: 60, y: 42, rotation: 180 };
+              if (idx === 5) return { ...p, x: 56, y: 62, rotation: 175 };
+              if (idx === 6) return { ...p, x: 40, y: 50, rotation: 180 };
+              return p;
+            }),
+          ],
+        },
+      ],
+    };
+
+    const miniTriangleCombo: TacticalPlayPreset = {
+      id: 'mini-triangle-combo',
+      name: 'Kombinasi Segitiga Cepat (Triangle 1-2)',
+      subtitle: 'Sirkulasi Segitiga Lini Tengah',
+      description: 'CDM, CM, dan ST saling bertukar operan cepat satu-dua membongkar blok pertahanan tengah lawan.',
+      frames: [
+        {
+          id: 'm-tri-1',
+          name: 'Frame 1: Operan Segitiga Pertama',
+          duration: 1.4,
+          ball: { id: 'ball-1', x: 36, y: 44 },
+          drawings: [
+            {
+              id: 'd-tri-1',
+              type: 'pass',
+              points: [36, 44, 48, 54],
+              color: '#f59e0b',
+            },
+          ],
+          players: [
+            ...baseHome.map((p, idx) => {
+              if (idx === 0) return { ...p, x: 7, y: 50, rotation: 0 };
+              if (idx === 1) return { ...p, x: 22, y: 34, rotation: 10 };
+              if (idx === 2) return { ...p, x: 22, y: 66, rotation: 350 };
+              if (idx === 3) return { ...p, x: 36, y: 44, rotation: 15 }; // Passer
+              if (idx === 4) return { ...p, x: 48, y: 54, rotation: 195 }; // Receiver
+              if (idx === 5) return { ...p, x: 46, y: 22, rotation: 15 };
+              if (idx === 6) return { ...p, x: 66, y: 46, rotation: 0 };
+              return p;
+            }),
+            ...baseAway.map((p, idx) => {
+              if (idx === 0) return { ...p, x: 94, y: 50, rotation: 180 };
+              if (idx === 1) return { ...p, x: 74, y: 50, rotation: 180 };
+              if (idx === 2) return { ...p, x: 74, y: 26, rotation: 180 };
+              if (idx === 3) return { ...p, x: 74, y: 74, rotation: 180 };
+              if (idx === 4) return { ...p, x: 54, y: 44, rotation: 180 };
+              if (idx === 5) return { ...p, x: 54, y: 60, rotation: 180 };
+              if (idx === 6) return { ...p, x: 38, y: 50, rotation: 180 };
+              return p;
+            }),
+          ],
+        },
+        {
+          id: 'm-tri-2',
+          name: 'Frame 2: Through Ball Penetrasi',
+          duration: 1.5,
+          ball: { id: 'ball-1', x: 68, y: 48 },
+          drawings: [],
+          players: [
+            ...baseHome.map((p, idx) => {
+              if (idx === 0) return { ...p, x: 7, y: 50, rotation: 0 };
+              if (idx === 1) return { ...p, x: 24, y: 34, rotation: 10 };
+              if (idx === 2) return { ...p, x: 24, y: 66, rotation: 350 };
+              if (idx === 3) return { ...p, x: 44, y: 46, rotation: 15 };
+              if (idx === 4) return { ...p, x: 52, y: 52, rotation: 10 };
+              if (idx === 5) return { ...p, x: 54, y: 24, rotation: 20 };
+              if (idx === 6) return { ...p, x: 68, y: 48, rotation: 0 }; // Striker receives
+              return p;
+            }),
+            ...baseAway.map((p, idx) => {
+              if (idx === 0) return { ...p, x: 92, y: 50, rotation: 180 };
+              if (idx === 1) return { ...p, x: 72, y: 50, rotation: 180 };
+              if (idx === 2) return { ...p, x: 74, y: 26, rotation: 180 };
+              if (idx === 3) return { ...p, x: 74, y: 74, rotation: 180 };
+              if (idx === 4) return { ...p, x: 56, y: 44, rotation: 180 };
+              if (idx === 5) return { ...p, x: 56, y: 60, rotation: 180 };
+              if (idx === 6) return { ...p, x: 40, y: 50, rotation: 180 };
+              return p;
+            }),
+          ],
+        },
+      ],
+    };
+
+    return [miniOverlapPlay, miniTriangleCombo];
+  }
+
+  // =============================================================
+  // 3. FOOTBALL (11 vs 11) PLAYS
+  // =============================================================
   const baseHome = generateInitialSquad('home', 'football', 11, 3);
   const baseAway = generateInitialSquad('away', 'football', 11, 3);
 
@@ -332,6 +659,7 @@ export function getTacticalPlayPresets(pitchType: PitchType): TacticalPlayPreset
       },
     ],
   };
+
 
   return [giveAndGoPlay, overlapPlay, thirdManPlay];
 }

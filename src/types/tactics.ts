@@ -26,6 +26,8 @@ export interface BallToken {
   id: string;
   x: number; // 0 - 100 percentage of pitch width
   y: number; // 0 - 100 percentage of pitch height
+  rotation?: number; // rotation in degrees for rolling/spinning animation
+  rotationAxis?: [number, number, number]; // 3D rolling axis [x, y, z]
 }
 
 export interface TeamConfig {
@@ -49,13 +51,49 @@ export interface DrawingElement {
   width?: number;
 }
 
+export type EquipmentType = 'cone' | 'mannequin' | 'pole' | 'mini-goal';
+
+export interface EquipmentItem {
+  id: string;
+  type: EquipmentType;
+  x: number; // 0 - 100 percentage of pitch width
+  y: number; // 0 - 100 percentage of pitch height
+  rotation: number; // 0 - 360 degrees
+  color: string;
+  label?: string;
+}
+
+export interface DrillMetadata {
+  title: string;
+  phase: 'all' | 'in-possession' | 'out-of-possession' | 'trans-attack' | 'trans-defend' | 'setpiece';
+  dimensions?: string;
+  duration?: string;
+  playerCount?: string;
+  objective?: string;
+  coachingPoints: string[];
+}
+
+export type TacticalPhase =
+  | 'attacking'
+  | 'defending'
+  | 'trans-attack'
+  | 'trans-defend'
+  | 'setpiece';
+
 export interface TacticalKeyframe {
   id: string;
   name: string;
+  phase?: TacticalPhase;
+  strategyName?: string;
+  strategyInstruction?: string;
+  strategyPresetId?: string;
   players: PlayerToken[];
   ball: BallToken;
   drawings?: DrawingElement[];
+  equipment?: EquipmentItem[];
   duration: number; // in seconds (for animation interpolation)
+  activeSegmentIndex?: number; // active tweening segment during playback
+  rawProgress?: number; // 0-1 progress within the active segment
 }
 
 export interface PitchDimensions {
@@ -99,4 +137,6 @@ export interface TacticsExportData {
   homeTeam: TeamConfig;
   awayTeam: TeamConfig;
   frames: TacticalKeyframe[];
+  equipment?: EquipmentItem[];
+  drillNotes?: DrillMetadata;
 }

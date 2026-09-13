@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { Group, Circle, Text, Line, Arrow, Rect, Path, Ellipse, Image as KonvaImage } from 'react-konva';
+import { Group, Circle, Text, Line, Arrow, Rect, Path, Ellipse, Arc, Image as KonvaImage } from 'react-konva';
 import Konva from 'konva';
 import { PlayerToken, TeamConfig } from '../../types/tactics';
 import { PitchLayout, normToCanvas, canvasToNorm } from '../../utils/pitchGeometry';
@@ -56,6 +56,7 @@ interface PlayerTokenNodeProps {
   onSwapWith: (playerAId: string, playerBId: string) => void;
   setSwapTarget: (id: string | null) => void;
   setIsDragging: (dragging: boolean) => void;
+  showPlayerFOV?: boolean;
 }
 
 export const PlayerTokenNode: React.FC<PlayerTokenNodeProps> = React.memo(({
@@ -73,6 +74,7 @@ export const PlayerTokenNode: React.FC<PlayerTokenNodeProps> = React.memo(({
   onSwapWith,
   setSwapTarget,
   setIsDragging,
+  showPlayerFOV = false,
 }) => {
   const groupRef = useRef<Konva.Group>(null);
   const handleRef = useRef<Konva.Circle>(null);
@@ -293,6 +295,22 @@ export const PlayerTokenNode: React.FC<PlayerTokenNodeProps> = React.memo(({
           strokeWidth={2}
           opacity={0.7}
         />
+      )}
+
+      {/* Field of View (FOV) Vision Cone (110 degrees) */}
+      {!player.isBench && (showPlayerFOV || isSelected || isHovered) && (
+        <Group listening={false}>
+          <Arc
+            innerRadius={0}
+            outerRadius={tokenStyle === 'jersey' ? radius * 3.6 : radius * 3.0}
+            angle={110}
+            rotation={player.rotation - 55}
+            fill="rgba(56, 189, 248, 0.14)"
+            stroke="rgba(56, 189, 248, 0.4)"
+            strokeWidth={1}
+            dash={[3, 3]}
+          />
+        </Group>
       )}
 
       {/* Facing direction pointer chevron/arrow */}

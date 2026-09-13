@@ -8,19 +8,27 @@ import {
   PitchView,
   PlayerToken,
   TacticalKeyframe,
+  TacticalPhase,
   TacticsExportData,
   TeamConfig,
   TeamDisplayMode,
   TeamSide,
   TokenStyle,
   TargetZoneKey,
+  EquipmentItem,
+  EquipmentType,
+  DrillMetadata,
 } from '../types/tactics';
 import { generateInitialSquad, getFormationsForPitch } from '../utils/formations';
 import { calculatePitchLayout } from '../utils/pitchGeometry';
 import { calculateDefensiveWall, getDefaultBarrierDistance } from '../utils/setpieceUtils';
 import { SetpiecePreset } from '../utils/setpiecePresets';
+import { getTacticalStrategyById, createMasterTacticalSequence } from '../utils/tacticalStrategies';
+import { SupportedLanguage } from '../i18n/translations';
 
 interface TacticsState {
+  language: SupportedLanguage;
+  setLanguage: (lang: SupportedLanguage) => void;
   pitchType: PitchType;
   pitchView: PitchView;
   pitchSurface: PitchSurface;
@@ -58,6 +66,69 @@ interface TacticsState {
   setTeamDisplayMode: (mode: TeamDisplayMode) => void;
   setSoloTeamSide: (side: 'home' | 'away') => void;
   setTokenStyle: (style: TokenStyle) => void;
+
+  // Pro Coaching Spatial Intelligence
+  showCompactness: 'none' | 'home' | 'away' | 'both';
+  setShowCompactness: (mode: 'none' | 'home' | 'away' | 'both') => void;
+  showDefensiveLines: boolean;
+  setShowDefensiveLines: (show: boolean) => void;
+  showPlayerFOV: boolean;
+  setShowPlayerFOV: (show: boolean) => void;
+  showActionSpotlight: boolean;
+  setShowActionSpotlight: (show: boolean) => void;
+  showStrategyHUD: boolean;
+  setShowStrategyHUD: (show: boolean) => void;
+  isStrategyModalOpen: boolean;
+  setIsStrategyModalOpen: (open: boolean) => void;
+  updateFrameStrategy: (
+    frameIndex: number,
+    strategy: {
+      phase?: TacticalPhase;
+      strategyName?: string;
+      strategyInstruction?: string;
+      strategyPresetId?: string;
+    }
+  ) => void;
+  applyStrategyPresetToFrame: (frameIndex: number, presetId: string) => void;
+  applyStrategyAsNextFrame: (presetId: string, autoPlay?: boolean) => void;
+  loadMasterTacticalSequence: (autoPlay?: boolean) => void;
+
+  // Training Ground Equipment
+  equipment: EquipmentItem[];
+  selectedEquipmentId: string | null;
+  isEquipmentToolbarOpen: boolean;
+  setIsEquipmentToolbarOpen: (open: boolean) => void;
+  addEquipment: (type: EquipmentType, x?: number, y?: number, color?: string) => void;
+  updateEquipmentPosition: (id: string, x: number, y: number) => void;
+  updateEquipmentRotation: (id: string, rotation: number) => void;
+  deleteEquipment: (id: string) => void;
+  clearEquipment: () => void;
+  setSelectedEquipmentId: (id: string | null) => void;
+
+  // Drill Notes & Session Designer
+  drillNotes: DrillMetadata;
+  isDrillNotesModalOpen: boolean;
+  setIsDrillNotesModalOpen: (open: boolean) => void;
+  setDrillNotes: (notes: Partial<DrillMetadata>) => void;
+
+  // Undo / Redo History
+  history: {
+    players: PlayerToken[];
+    ball: BallToken;
+    drawings: DrawingElement[];
+    equipment: EquipmentItem[];
+  }[];
+  future: {
+    players: PlayerToken[];
+    ball: BallToken;
+    drawings: DrawingElement[];
+    equipment: EquipmentItem[];
+  }[];
+  canUndo: boolean;
+  canRedo: boolean;
+  pushHistory: () => void;
+  undo: () => void;
+  redo: () => void;
 
   // Setpiece Mode & Assistant Tools
   isSetpieceMode: boolean;
@@ -107,7 +178,7 @@ interface TacticsState {
   applyFormation: (team: TeamSide, presetName: string) => void;
 
   // Ball
-  updateBallPosition: (x: number, y: number) => void;
+  updateBallPosition: (x: number, y: number, rotation?: number) => void;
 
   // Drawing Tools
   activeTool: ActiveTool;
@@ -121,9 +192,11 @@ interface TacticsState {
   // Keyframes & Interpolation
   interpolatedFrame: TacticalKeyframe | null;
   playbackProgress: number;
+  playbackTargetFrame: number | null;
   isRecording: boolean;
   setInterpolatedFrame: (frame: TacticalKeyframe | null) => void;
   setPlaybackProgress: (progress: number) => void;
+  setPlaybackTargetFrame: (frameIndex: number | null) => void;
   setIsRecording: (recording: boolean) => void;
   setActiveFrame: (index: number) => void;
   addFrame: () => void;
@@ -136,6 +209,20 @@ interface TacticsState {
   resetTactics: () => void;
   loadProjectData: (data: TacticsExportData) => void;
 }
+
+const DEFAULT_DRILL_NOTES: DrillMetadata = {
+  title: 'Sesi Taktik & Latihan',
+  phase: 'in-possession',
+  dimensions: '105m x 68m',
+  duration: '20 Menit',
+  playerCount: '11 vs 11',
+  objective: 'Membangun serangan dari lini belakang (Deep Build-up) & sirkulasi bola vertikal.',
+  coachingPoints: [
+    'Buka lebar posisi bek sayap dan sudut tubuh terbuka (open body shape).',
+    'Gelandang bertahan turun membentuk segitiga passing (passing triangle).',
+    'Scanning situasi dan opsi rekan sebelum menerima bola.',
+  ],
+};
 
 const DEFAULT_HOME_TEAM: TeamConfig = {
   name: 'Home Red',
@@ -160,6 +247,10 @@ function createInitialKeyframe(pitchType: PitchType): TacticalKeyframe {
   return {
     id: `frame-${Date.now()}-1`,
     name: 'Frame 1',
+    phase: 'attacking',
+    strategyName: 'Build-up 3-2-4-1 (Inverted Full-back)',
+    strategyInstruction: 'LB masuk ke pivot ganda samping #6, bek tengah melebar, winger membuka garis sentuh lebar!',
+    strategyPresetId: 'build-up-3241',
     players: [...homeSquad, ...awaySquad],
     ball: {
       id: 'ball-1',
@@ -174,6 +265,13 @@ export const useTacticsStore = create<TacticsState>((set, get) => {
   const initialFrame = createInitialKeyframe('football');
 
   return {
+    language: (typeof window !== 'undefined' && localStorage.getItem('bola_bundar_lang') === 'en') ? 'en' : 'id',
+    setLanguage: (lang: SupportedLanguage) => {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('bola_bundar_lang', lang);
+      }
+      set({ language: lang });
+    },
     pitchType: 'football',
     pitchView: 'full',
     pitchSurface: 'grass',
@@ -203,6 +301,7 @@ export const useTacticsStore = create<TacticsState>((set, get) => {
     activeDrawingColor: '#f59e0b',
     interpolatedFrame: null,
     playbackProgress: 0,
+    playbackTargetFrame: null,
     isRecording: false,
 
     setPitchType: (pitchType: PitchType) => {
@@ -278,6 +377,167 @@ export const useTacticsStore = create<TacticsState>((set, get) => {
         localStorage.setItem('bola_bundar_token_style', tokenStyle);
       }
       set({ tokenStyle });
+    },
+
+    // Pro Coaching Spatial Intelligence
+    showCompactness: 'none',
+    setShowCompactness: (showCompactness) => set({ showCompactness }),
+    showDefensiveLines: false,
+    setShowDefensiveLines: (showDefensiveLines) => set({ showDefensiveLines }),
+    showPlayerFOV: false,
+    setShowPlayerFOV: (showPlayerFOV) => set({ showPlayerFOV }),
+    showActionSpotlight: true,
+    setShowActionSpotlight: (showActionSpotlight) => set({ showActionSpotlight }),
+    showStrategyHUD: true,
+    setShowStrategyHUD: (showStrategyHUD) => set({ showStrategyHUD }),
+    isStrategyModalOpen: false,
+    setIsStrategyModalOpen: (isStrategyModalOpen) => set({ isStrategyModalOpen }),
+
+    // Training Ground Equipment
+    equipment: [],
+    selectedEquipmentId: null,
+    isEquipmentToolbarOpen: false,
+    setIsEquipmentToolbarOpen: (isEquipmentToolbarOpen) => set({ isEquipmentToolbarOpen }),
+    setSelectedEquipmentId: (selectedEquipmentId) => set({ selectedEquipmentId }),
+    addEquipment: (type, x = 50, y = 50, color) => {
+      get().pushHistory();
+      const defaultColor =
+        type === 'cone' ? '#f59e0b' :
+        type === 'mannequin' ? '#3b82f6' :
+        type === 'pole' ? '#ef4444' : '#ffffff';
+
+      const newEquip: EquipmentItem = {
+        id: `equip-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+        type,
+        x,
+        y,
+        rotation: 0,
+        color: color || defaultColor,
+      };
+
+      set((state) => ({
+        equipment: [...state.equipment, newEquip],
+        selectedEquipmentId: newEquip.id,
+      }));
+    },
+    updateEquipmentPosition: (id, x, y) => {
+      get().pushHistory();
+      set((state) => ({
+        equipment: state.equipment.map((eq) => (eq.id === id ? { ...eq, x, y } : eq)),
+      }));
+    },
+    updateEquipmentRotation: (id, rotation) => {
+      set((state) => ({
+        equipment: state.equipment.map((eq) => (eq.id === id ? { ...eq, rotation } : eq)),
+      }));
+    },
+    deleteEquipment: (id) => {
+      get().pushHistory();
+      set((state) => ({
+        equipment: state.equipment.filter((eq) => eq.id !== id),
+        selectedEquipmentId: state.selectedEquipmentId === id ? null : state.selectedEquipmentId,
+      }));
+    },
+    clearEquipment: () => {
+      get().pushHistory();
+      set({ equipment: [], selectedEquipmentId: null });
+    },
+
+    // Drill Notes & Session Designer
+    drillNotes: DEFAULT_DRILL_NOTES,
+    isDrillNotesModalOpen: false,
+    setIsDrillNotesModalOpen: (isDrillNotesModalOpen) => set({ isDrillNotesModalOpen }),
+    setDrillNotes: (notes) => set((state) => ({ drillNotes: { ...state.drillNotes, ...notes } })),
+
+    // Undo / Redo Engine
+    history: [],
+    future: [],
+    canUndo: false,
+    canRedo: false,
+    pushHistory: () => {
+      const state = get();
+      const currentFrame = state.frames[state.activeFrameIndex] || state.frames[0];
+      if (!currentFrame) return;
+
+      const snapshot = {
+        players: JSON.parse(JSON.stringify(currentFrame.players)),
+        ball: { ...currentFrame.ball },
+        drawings: JSON.parse(JSON.stringify(currentFrame.drawings || [])),
+        equipment: JSON.parse(JSON.stringify(state.equipment)),
+      };
+
+      set({
+        history: [...state.history.slice(-25), snapshot],
+        future: [],
+        canUndo: true,
+        canRedo: false,
+      });
+    },
+
+    undo: () => {
+      const state = get();
+      if (state.history.length === 0) return;
+
+      const currentFrame = state.frames[state.activeFrameIndex] || state.frames[0];
+      const currentSnapshot = {
+        players: JSON.parse(JSON.stringify(currentFrame.players)),
+        ball: { ...currentFrame.ball },
+        drawings: JSON.parse(JSON.stringify(currentFrame.drawings || [])),
+        equipment: JSON.parse(JSON.stringify(state.equipment)),
+      };
+
+      const newHistory = [...state.history];
+      const prevSnapshot = newHistory.pop()!;
+
+      const updatedFrames = [...state.frames];
+      updatedFrames[state.activeFrameIndex] = {
+        ...currentFrame,
+        players: prevSnapshot.players,
+        ball: prevSnapshot.ball,
+        drawings: prevSnapshot.drawings,
+      };
+
+      set({
+        frames: updatedFrames,
+        equipment: prevSnapshot.equipment,
+        history: newHistory,
+        future: [currentSnapshot, ...state.future],
+        canUndo: newHistory.length > 0,
+        canRedo: true,
+      });
+    },
+
+    redo: () => {
+      const state = get();
+      if (state.future.length === 0) return;
+
+      const currentFrame = state.frames[state.activeFrameIndex] || state.frames[0];
+      const currentSnapshot = {
+        players: JSON.parse(JSON.stringify(currentFrame.players)),
+        ball: { ...currentFrame.ball },
+        drawings: JSON.parse(JSON.stringify(currentFrame.drawings || [])),
+        equipment: JSON.parse(JSON.stringify(state.equipment)),
+      };
+
+      const newFuture = [...state.future];
+      const nextSnapshot = newFuture.shift()!;
+
+      const updatedFrames = [...state.frames];
+      updatedFrames[state.activeFrameIndex] = {
+        ...currentFrame,
+        players: nextSnapshot.players,
+        ball: nextSnapshot.ball,
+        drawings: nextSnapshot.drawings,
+      };
+
+      set({
+        frames: updatedFrames,
+        equipment: nextSnapshot.equipment,
+        history: [...state.history, currentSnapshot],
+        future: newFuture,
+        canUndo: true,
+        canRedo: newFuture.length > 0,
+      });
     },
 
     // Setpiece State & Setters
@@ -356,7 +616,7 @@ export const useTacticsStore = create<TacticsState>((set, get) => {
             }
           }
 
-          let activePlayers = teamPlayers.filter((p) => !p.isBench);
+          const activePlayers = teamPlayers.filter((p) => !p.isBench);
 
           // A) Activate from bench first if active players < targetCount
           if (activePlayers.length < targetCount) {
@@ -855,6 +1115,7 @@ export const useTacticsStore = create<TacticsState>((set, get) => {
     setIsDragging: (isDragging: boolean) => set({ isDragging }),
 
     updatePlayerPosition: (playerId: string, x: number, y: number, isBench?: boolean) => {
+      get().pushHistory();
       const { frames, activeFrameIndex } = get();
       const currentFrame = frames[activeFrameIndex];
       if (!currentFrame) return;
@@ -894,6 +1155,7 @@ export const useTacticsStore = create<TacticsState>((set, get) => {
     },
 
     updatePlayer: (playerId: string, updates: Partial<PlayerToken>) => {
+      get().pushHistory();
       const { frames, activeFrameIndex } = get();
       const currentFrame = frames[activeFrameIndex];
       if (!currentFrame) return;
@@ -930,6 +1192,7 @@ export const useTacticsStore = create<TacticsState>((set, get) => {
     },
 
     swapPlayers: (playerAId: string, playerBId: string) => {
+      get().pushHistory();
       const { frames, activeFrameIndex } = get();
       const currentFrame = frames[activeFrameIndex];
       if (!currentFrame) return;
@@ -954,6 +1217,7 @@ export const useTacticsStore = create<TacticsState>((set, get) => {
     },
 
     addPlayer: (team: TeamSide, isBench = false) => {
+      get().pushHistory();
       const { frames, activeFrameIndex } = get();
       const currentFrame = frames[activeFrameIndex];
       if (!currentFrame) return;
@@ -981,10 +1245,11 @@ export const useTacticsStore = create<TacticsState>((set, get) => {
         players: [...frame.players, { ...newPlayer }],
       }));
 
-      set({ frames: updatedFrames, selectedPlayerId: newPlayer.id });
+      set({ frames: updatedFrames });
     },
 
     removePlayer: (playerId: string) => {
+      get().pushHistory();
       const { frames, selectedPlayerId } = get();
       const updatedFrames = frames.map((frame) => ({
         ...frame,
@@ -998,27 +1263,36 @@ export const useTacticsStore = create<TacticsState>((set, get) => {
     },
 
     toggleBenchPlayer: (playerId: string) => {
+      get().pushHistory();
       const { frames, activeFrameIndex } = get();
       const currentFrame = frames[activeFrameIndex];
       if (!currentFrame) return;
 
-      const target = currentFrame.players.find((p) => p.id === playerId);
-      if (!target) return;
+      const player = currentFrame.players.find((p) => p.id === playerId);
+      if (!player) return;
 
-      const willBeBench = !target.isBench;
-      const newY = willBeBench ? 106 : 50;
-      const newX = target.team === 'home' ? 25 : 75;
+      const willBench = !player.isBench;
+      const isHome = player.team === 'home';
 
-      const newPlayers = currentFrame.players.map((p) =>
-        p.id === playerId ? { ...p, isBench: willBeBench, x: newX, y: newY } : p
-      );
+      const updatedPlayers = currentFrame.players.map((p) => {
+        if (p.id === playerId) {
+          return {
+            ...p,
+            isBench: willBench,
+            x: willBench ? (isHome ? 15 : 85) : isHome ? 35 : 65,
+            y: willBench ? 106 : 50,
+          };
+        }
+        return p;
+      });
 
       const updatedFrames = [...frames];
-      updatedFrames[activeFrameIndex] = { ...currentFrame, players: newPlayers };
+      updatedFrames[activeFrameIndex] = { ...currentFrame, players: updatedPlayers };
       set({ frames: updatedFrames });
     },
 
     applyFormation: (team: TeamSide, presetName: string) => {
+      get().pushHistory();
       const { frames, activeFrameIndex, pitchType } = get();
       const currentFrame = frames[activeFrameIndex];
       if (!currentFrame) return;
@@ -1055,15 +1329,25 @@ export const useTacticsStore = create<TacticsState>((set, get) => {
       set({ frames: updatedFrames });
     },
 
-    updateBallPosition: (x: number, y: number) => {
+    updateBallPosition: (x: number, y: number, rotation?: number) => {
+      get().pushHistory();
       const { frames, activeFrameIndex } = get();
       const currentFrame = frames[activeFrameIndex];
       if (!currentFrame) return;
+
+      const prevBall = currentFrame.ball;
+      const dx = x - prevBall.x;
+      const dy = y - prevBall.y;
+      const dist = Math.hypot(dx, dy);
+      const computedRot = rotation !== undefined
+        ? rotation
+        : ((prevBall.rotation || 0) + (dx >= 0 ? 1 : -1) * dist * 18) % 360;
 
       const newBall: BallToken = {
         ...currentFrame.ball,
         x: Math.max(0, Math.min(100, x)),
         y: Math.max(0, Math.min(100, y)),
+        rotation: Math.round(computedRot * 10) / 10,
       };
 
       const updatedFrames = [...frames];
@@ -1087,6 +1371,10 @@ export const useTacticsStore = create<TacticsState>((set, get) => {
       const newFrame: TacticalKeyframe = {
         id: `frame-${Date.now()}-${frames.length + 1}`,
         name: `Frame ${frames.length + 1}`,
+        phase: currentFrame.phase,
+        strategyName: currentFrame.strategyName,
+        strategyInstruction: currentFrame.strategyInstruction,
+        strategyPresetId: currentFrame.strategyPresetId,
         players: currentFrame.players.map((p) => ({ ...p })),
         ball: { ...currentFrame.ball },
         duration: 1.5,
@@ -1113,6 +1401,10 @@ export const useTacticsStore = create<TacticsState>((set, get) => {
       const newFrame: TacticalKeyframe = {
         id: `frame-${Date.now()}-${frames.length + 1}`,
         name: `${frameToDuplicate.name} (Copy)`,
+        phase: frameToDuplicate.phase,
+        strategyName: frameToDuplicate.strategyName,
+        strategyInstruction: frameToDuplicate.strategyInstruction,
+        strategyPresetId: frameToDuplicate.strategyPresetId,
         players: frameToDuplicate.players.map((p) => ({ ...p })),
         ball: { ...frameToDuplicate.ball },
         duration: frameToDuplicate.duration,
@@ -1133,43 +1425,143 @@ export const useTacticsStore = create<TacticsState>((set, get) => {
 
     removeFrame: (index: number) => {
       const { frames, activeFrameIndex } = get();
-      if (frames.length <= 1) return; // Keep at least one frame
+      if (frames.length <= 1) return;
 
       const updatedFrames = frames.filter((_, idx) => idx !== index);
-      const newActive = Math.min(activeFrameIndex, updatedFrames.length - 1);
+      const nextActive = Math.min(activeFrameIndex, updatedFrames.length - 1);
 
       set({
         frames: updatedFrames,
-        activeFrameIndex: newActive,
+        activeFrameIndex: nextActive,
       });
     },
 
     updateFrameDuration: (index: number, duration: number) => {
       const { frames } = get();
-      const updatedFrames = [...frames];
-      if (updatedFrames[index]) {
-        updatedFrames[index] = { ...updatedFrames[index], duration: Math.max(0.2, duration) };
-        set({ frames: updatedFrames });
+      const updated = [...frames];
+      if (updated[index]) {
+        updated[index] = { ...updated[index], duration: Math.max(0.5, duration) };
+        set({ frames: updated });
       }
     },
 
-    loadPlayPreset: (frames: TacticalKeyframe[]) => {
-      if (!frames || frames.length === 0) return;
+    loadPlayPreset: (presetFrames: TacticalKeyframe[]) => {
+      if (!presetFrames || presetFrames.length === 0) return;
       set({
-        frames,
+        frames: presetFrames,
         activeFrameIndex: 0,
-        selectedPlayerId: null,
-        hoveredPlayerId: null,
-        swapTargetPlayerId: null,
-        interpolatedFrame: null,
         isPlaying: false,
+        interpolatedFrame: null,
+        playbackProgress: 0,
       });
     },
 
-    setActiveTool: (tool: ActiveTool) => set({ activeTool: tool, selectedPlayerId: null }),
-    setActiveDrawingColor: (color: string) => set({ activeDrawingColor: color }),
+    applyStrategyPresetToFrame: (frameIndex: number, presetId: string) => {
+      const { frames, pitchType } = get();
+      const targetFrame = frames[frameIndex];
+      if (!targetFrame) return;
+
+      const preset = getTacticalStrategyById(presetId);
+      if (!preset) return;
+
+      const { players, ball, drawings } = preset.generatePositions(
+        targetFrame.players,
+        pitchType,
+        targetFrame.ball
+      );
+
+      const updated = [...frames];
+      updated[frameIndex] = {
+        ...targetFrame,
+        phase: preset.phase,
+        strategyName: preset.name,
+        strategyInstruction: preset.instruction,
+        strategyPresetId: preset.id,
+        players,
+        ball,
+        drawings: drawings || targetFrame.drawings,
+      };
+
+      set({ frames: updated });
+    },
+
+    applyStrategyAsNextFrame: (presetId: string, autoPlay = true) => {
+      const { frames, activeFrameIndex, pitchType } = get();
+      const currentFrame = frames[activeFrameIndex] || frames[0];
+      if (!currentFrame) return;
+
+      const preset = getTacticalStrategyById(presetId);
+      if (!preset) return;
+
+      const { players, ball, drawings } = preset.generatePositions(
+        currentFrame.players,
+        pitchType,
+        currentFrame.ball
+      );
+
+      const targetIndex = activeFrameIndex + 1;
+      const newFrame: TacticalKeyframe = {
+        id: `frame-${Date.now()}-${frames.length + 1}`,
+        name: preset.name,
+        phase: preset.phase,
+        strategyName: preset.name,
+        strategyInstruction: preset.instruction,
+        strategyPresetId: preset.id,
+        players,
+        ball,
+        drawings: drawings || [],
+        duration: preset.phase === 'setpiece' ? 2.4 : 1.8,
+      };
+
+      const updatedFrames = [
+        ...frames.slice(0, targetIndex),
+        newFrame,
+        ...frames.slice(targetIndex),
+      ];
+
+      set({
+        frames: updatedFrames,
+        playbackTargetFrame: autoPlay ? targetIndex : null,
+        isPlaying: autoPlay,
+        ...(autoPlay ? {} : { activeFrameIndex: targetIndex }),
+      });
+    },
+
+    updateFrameStrategy: (frameIndex, strategy) => {
+      const { frames } = get();
+      const targetFrame = frames[frameIndex];
+      if (!targetFrame) return;
+
+      const updated = [...frames];
+      updated[frameIndex] = {
+        ...targetFrame,
+        ...(strategy.phase !== undefined && { phase: strategy.phase }),
+        ...(strategy.strategyName !== undefined && { strategyName: strategy.strategyName }),
+        ...(strategy.strategyInstruction !== undefined && { strategyInstruction: strategy.strategyInstruction }),
+        ...(strategy.strategyPresetId !== undefined && { strategyPresetId: strategy.strategyPresetId }),
+      };
+
+      set({ frames: updated });
+    },
+
+    loadMasterTacticalSequence: (autoPlay = false) => {
+      const { pitchType } = get();
+      const masterFrames = createMasterTacticalSequence(pitchType);
+      set({
+        frames: masterFrames,
+        activeFrameIndex: 0,
+        isPlaying: autoPlay,
+        interpolatedFrame: null,
+        playbackProgress: 0,
+        playbackTargetFrame: null,
+      });
+    },
+
+    setActiveTool: (activeTool: ActiveTool) => set({ activeTool }),
+    setActiveDrawingColor: (activeDrawingColor: string) => set({ activeDrawingColor }),
 
     addDrawing: (drawing: DrawingElement) => {
+      get().pushHistory();
       const { frames, activeFrameIndex } = get();
       const currentFrame = frames[activeFrameIndex];
       if (!currentFrame) return;
@@ -1184,6 +1576,7 @@ export const useTacticsStore = create<TacticsState>((set, get) => {
     },
 
     removeDrawing: (id: string) => {
+      get().pushHistory();
       const { frames, activeFrameIndex } = get();
       const currentFrame = frames[activeFrameIndex];
       if (!currentFrame) return;
@@ -1198,6 +1591,7 @@ export const useTacticsStore = create<TacticsState>((set, get) => {
     },
 
     clearDrawings: () => {
+      get().pushHistory();
       const { frames, activeFrameIndex } = get();
       const currentFrame = frames[activeFrameIndex];
       if (!currentFrame) return;
@@ -1227,29 +1621,42 @@ export const useTacticsStore = create<TacticsState>((set, get) => {
         homeTeam: data.homeTeam || DEFAULT_HOME_TEAM,
         awayTeam: data.awayTeam || DEFAULT_AWAY_TEAM,
         frames: data.frames,
+        equipment: data.equipment || [],
+        drillNotes: data.drillNotes || DEFAULT_DRILL_NOTES,
         activeFrameIndex: 0,
         selectedPlayerId: null,
         hoveredPlayerId: null,
         swapTargetPlayerId: null,
         interpolatedFrame: null,
         isPlaying: false,
+        history: [],
+        future: [],
+        canUndo: false,
+        canRedo: false,
       });
     },
 
     setIsPlaying: (isPlaying: boolean) => set({ isPlaying }),
     setPlaybackSpeed: (playbackSpeed: number) => set({ playbackSpeed }),
+    setPlaybackTargetFrame: (playbackTargetFrame: number | null) => set({ playbackTargetFrame }),
 
     resetTactics: () => {
       const { pitchType } = get();
       const newFrame = createInitialKeyframe(pitchType);
       set({
         frames: [newFrame],
+        equipment: [],
+        drillNotes: DEFAULT_DRILL_NOTES,
         activeFrameIndex: 0,
         selectedPlayerId: null,
         hoveredPlayerId: null,
         swapTargetPlayerId: null,
         interpolatedFrame: null,
         isPlaying: false,
+        history: [],
+        future: [],
+        canUndo: false,
+        canRedo: false,
       });
     },
   };
