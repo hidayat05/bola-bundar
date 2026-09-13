@@ -147,6 +147,21 @@ export function useTacticalPlayback() {
         const dy = pB.y - pA.y;
         const moveDist = Math.hypot(dx, dy);
 
+        // Staggered / Sequenced Run: calculate individual player progress if delay is set
+        const playerDelayMs = Math.max(0, (pA.delay || 0) * 1000);
+        let playerEasedT = easedT;
+        if (playerDelayMs > 0 && segDuration > playerDelayMs) {
+          if (segLocalTime < playerDelayMs) {
+            playerEasedT = 0; // Player has not started run yet (delayed decoy / late runner)
+          } else {
+            const playerLocalProgress = Math.min(
+              1,
+              Math.max(0, (segLocalTime - playerDelayMs) / (segDuration - playerDelayMs))
+            );
+            playerEasedT = easeInOutCubic(playerLocalProgress);
+          }
+        }
+
         let startRot = pA.rotation;
         let endRot = pB.rotation;
 
@@ -160,9 +175,9 @@ export function useTacticalPlayback() {
 
         return {
           ...pA,
-          x: pA.x + dx * easedT,
-          y: pA.y + dy * easedT,
-          rotation: interpolateAngle(startRot, endRot, easedT),
+          x: pA.x + dx * playerEasedT,
+          y: pA.y + dy * playerEasedT,
+          rotation: interpolateAngle(startRot, endRot, playerEasedT),
           isBench: rawProgress > 0.5 ? pB.isBench : pA.isBench,
         };
       });

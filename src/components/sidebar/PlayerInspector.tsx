@@ -14,6 +14,7 @@ import {
   Move,
   Square,
   Eye,
+  Timer,
 } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import { useTacticsStore } from '../../store/useTacticsStore';
@@ -338,6 +339,65 @@ export const PlayerInspector: React.FC = React.memo(() => {
             <span>✕ Hapus Tanda Kotak</span>
           </button>
         )}
+      </div>
+
+      {/* Staggered Run / Start Delay (0.0s - 2.0s) */}
+      <div className="bg-slate-900/60 p-3 rounded-xl border border-slate-800 space-y-2">
+        <div className="flex items-center justify-between">
+          <label className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold flex items-center gap-1">
+            <Timer className="w-3.5 h-3.5 text-emerald-400" />
+            Waktu Mulai Lari / Start Delay
+          </label>
+          <span className="text-[11px] font-mono text-emerald-300 font-bold">
+            {selectedPlayer.delay && selectedPlayer.delay > 0
+              ? `+${selectedPlayer.delay.toFixed(1)}s`
+              : '0.0s (Serentak)'}
+          </span>
+        </div>
+
+        <input
+          type="range"
+          min="0"
+          max="2.0"
+          step="0.1"
+          value={selectedPlayer.delay || 0}
+          onChange={(e) => {
+            const val = parseFloat(e.target.value);
+            updatePlayer(selectedPlayer.id, { delay: val > 0 ? val : undefined });
+          }}
+          className="w-full accent-emerald-500 h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer"
+        />
+
+        {/* Quick Timing Presets */}
+        <div className="grid grid-cols-4 gap-1 pt-0.5">
+          {[
+            { label: '0.0s', desc: 'Serentak', val: 0 },
+            { label: '+0.3s', desc: 'Cepat', val: 0.3 },
+            { label: '+0.6s', desc: 'Decoy', val: 0.6 },
+            { label: '+1.0s', desc: 'Late Run', val: 1.0 },
+          ].map((preset) => {
+            const isActive = (selectedPlayer.delay || 0) === preset.val;
+            return (
+              <button
+                key={preset.val}
+                type="button"
+                onClick={() => {
+                  updatePlayer(selectedPlayer.id, { delay: preset.val > 0 ? preset.val : undefined });
+                  if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(10);
+                }}
+                className={`py-1 px-1 rounded text-center border text-[9px] font-bold transition-all ${
+                  isActive
+                    ? 'bg-emerald-600/30 border-emerald-500/70 text-emerald-300'
+                    : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
+                }`}
+                title={preset.desc}
+              >
+                <div>{preset.label}</div>
+                <div className="text-[8px] font-normal opacity-70 truncate">{preset.desc}</div>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Facing Orientation Angle (0 - 360°) */}

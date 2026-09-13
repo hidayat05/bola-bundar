@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useMemo } from 'react';
 import { Stage, Layer, Group, Line, Rect, Text } from 'react-konva';
 import Konva from 'konva';
 import { useShallow } from 'zustand/react/shallow';
@@ -195,12 +195,16 @@ export const TacticalCanvas: React.FC<TacticalCanvasProps> = ({ stageRef }) => {
     return () => observer.disconnect();
   }, []);
 
-  // Compute responsive layout
-  const layout = calculatePitchLayout(
-    dimensions.width,
-    dimensions.height,
-    pitchType,
-    pitchView
+  // Compute responsive layout (memoized to prevent redundant Layer redraws & cache busting during 60 FPS animation)
+  const layout = useMemo(
+    () =>
+      calculatePitchLayout(
+        dimensions.width,
+        dimensions.height,
+        pitchType,
+        pitchView
+      ),
+    [dimensions.width, dimensions.height, pitchType, pitchView]
   );
 
   const isShortScreen = layout.containerHeight <= 520;

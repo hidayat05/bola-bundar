@@ -48,6 +48,8 @@ export interface PlayerToken {
   isWall?: boolean;
   subStatus?: 'in' | 'out';
   activeActionZone?: PlayerActionZone | null;
+  delay?: number; // Start delay in seconds (e.g. 0.0 - 2.0s) for realistic staggered/decoy runs
+  sprintDuration?: number; // Optional duration in seconds for this player's run within the frame
 }
 
 export interface BallToken {

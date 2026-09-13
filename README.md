@@ -1,6 +1,6 @@
 # ⚽ Bola Bundar — Papan Taktik Digital Kelas Dunia
 
-![Version](https://img.shields.io/badge/version-1.3.0-blue.svg)
+![Version](https://img.shields.io/badge/version-1.6.0-blue.svg)
 ![React](https://img.shields.io/badge/React-18-61DAFB?logo=react)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript)
 ![Vite](https://img.shields.io/badge/Vite-5-646CFF?logo=vite)
@@ -23,9 +23,13 @@
 | 📐 **Grid 20 Zona** | Overlay *Juego de Posición* — 5 koridor + 20 zona, alert overload otomatis |
 | 🛡️ **Rest Defense Analyzer** | Kotak bounding box hijau/merah + badge struktur 3+2 real-time |
 | ⏱️ **Futsal 4-Second Rule** | Countdown clock interaktif + suara peluit otomatis (mode futsal) |
+| 🔲 **Area Aksi Taktis (Action Zones)** | Kotak area tanggung jawab (Overlap, Underlap, Cover, Press, Channel Run, Paralela) dengan lencana & panah vektor |
+| ⏱️ **Staggered Run Timing** | Delay waktu sprint pemain (0.0s - 2.0s) untuk pergerakan bertahap dan decoy run realistis |
+| 📋 **Lembar Taktik Matchday (Print/PDF)** | Cetak formasi A4, matriks bola mati (corner, freekick, wall), dan catatan pelatih untuk ruang ganti |
+| 🎛️ **Floating Scrubber Capsule** | Bilah pemutar media mengambang dengan slider scrubber presisi (mm:ss.s) dan tombol navigasi |
 | 🔗 **Share Link** | Encode taktik ke URL hash terkompresi — buka link langsung siap ▶ putar |
 | 🎯 **Guided Tour** | Spotlight ring interaktif dengan panduan fitur step-by-step |
-| 💾 **Export Multi-Format** | PNG 2x Retina · Video .webm · Proyek .json · Import .json |
+| 💾 **Export Multi-Format** | PNG 2x Retina · Video .webm · Proyek .json · Import .json · Print A4 |
 | 🌐 **Bilingual** | Interface penuh Bahasa Indonesia / English (toggle di navbar) |
 
 ---
@@ -216,7 +220,7 @@ Otomatis via **GitHub Actions** setiap kali Git Tag baru di-push:
 ```bash
 git add .
 git commit -m "feat: deskripsi fitur"
-git tag -a v1.3.0 -m "Release v1.3.0"
+git tag -a v1.6.0 -m "Release v1.6.0"
 git push origin main --tags
 ```
 

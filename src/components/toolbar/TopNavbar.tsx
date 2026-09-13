@@ -31,6 +31,7 @@ import {
   FolderDown,
   Link2,
   Keyboard,
+  FileText,
 } from 'lucide-react';
 import Konva from 'konva';
 import { useShallow } from 'zustand/react/shallow';
@@ -132,6 +133,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({ stageRef, onOpe
     pingBall,
     setIsDrillNotesModalOpen,
     setIsShortcutsModalOpen,
+    setIsMatchdayModalOpen,
     isEquipmentToolbarOpen,
     setIsEquipmentToolbarOpen,
     equipment,
@@ -193,6 +195,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({ stageRef, onOpe
       equipment: s.equipment,
       drillNotes: s.drillNotes,
       setIsShortcutsModalOpen: s.setIsShortcutsModalOpen,
+      setIsMatchdayModalOpen: s.setIsMatchdayModalOpen,
     }))
   );
 
@@ -268,6 +271,18 @@ export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({ stageRef, onOpe
     }
   };
 
+  const handleSwitchPitchType = (target: 'football' | 'mini-soccer' | 'futsal') => {
+    if (target === pitchType) return;
+    if (frames.length > 1) {
+      const confirmMsg =
+        language === 'en'
+          ? 'Switching pitch type will reset current animation frames. Continue?'
+          : 'Mengganti jenis lapangan akan mereset frame animasi saat ini. Lanjutkan?';
+      if (!window.confirm(confirmMsg)) return;
+    }
+    setPitchType(target);
+  };
+
   const currentFrame = frames[activeFrameIndex] || frames[0];
 
   // Snapshot PNG
@@ -302,7 +317,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({ stageRef, onOpe
   const [shareCopied, setShareCopied] = useState(false);
   const handleShareLink = async () => {
     const url = buildShareUrl({
-      version: '1.0.0',
+      version: '1.6.0',
       exportedAt: new Date().toISOString(),
       appName: 'Bola Bundar Tactical Board',
       pitchType,
@@ -446,7 +461,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({ stageRef, onOpe
           {/* Sport Type Segmented Control */}
           <div data-tour="pitch-controls" className="bg-slate-950 p-0.5 rounded-lg border border-slate-800 flex text-xs shrink-0">
             <button
-              onClick={() => setPitchType('football')}
+              onClick={() => handleSwitchPitchType('football')}
               className={`px-2 sm:px-2.5 py-1 sm:py-1 rounded-md font-medium text-xs transition-all ${
                 pitchType === 'football'
                   ? 'bg-emerald-600 text-white shadow-sm font-semibold'
@@ -457,7 +472,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({ stageRef, onOpe
               {t('sport11v11')}
             </button>
             <button
-              onClick={() => setPitchType('mini-soccer')}
+              onClick={() => handleSwitchPitchType('mini-soccer')}
               className={`px-2 sm:px-2.5 py-1 sm:py-1 rounded-md font-medium text-xs transition-all ${
                 pitchType === 'mini-soccer'
                   ? 'bg-emerald-600 text-white shadow-sm font-semibold'
@@ -468,7 +483,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({ stageRef, onOpe
               Mini
             </button>
             <button
-              onClick={() => setPitchType('futsal')}
+              onClick={() => handleSwitchPitchType('futsal')}
               className={`px-2 sm:px-2.5 py-1 sm:py-1 rounded-md font-medium text-xs transition-all ${
                 pitchType === 'futsal'
                   ? 'bg-blue-600 text-white shadow-sm font-semibold'
@@ -1023,6 +1038,23 @@ export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({ stageRef, onOpe
                     </div>
                     <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded font-bold">
                       Lembar 📝
+                    </span>
+                  </button>
+
+                  {/* Matchday Sheet & Setpiece Card Button */}
+                  <button
+                    onClick={() => {
+                      setIsMatchdayModalOpen(true);
+                      setOpenDropdown(null);
+                    }}
+                    className="w-full p-2 rounded-xl bg-slate-950 hover:bg-slate-850 border border-amber-500/40 text-amber-300 text-xs font-semibold flex items-center justify-between transition-all"
+                  >
+                    <div className="flex items-center gap-2">
+                      <FileText className="w-4 h-4 text-amber-400" />
+                      <span>Lembar Matchday & Set-Piece</span>
+                    </div>
+                    <span className="text-[10px] bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded font-bold">
+                      Cetak 🖨️
                     </span>
                   </button>
 
@@ -1600,6 +1632,17 @@ export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({ stageRef, onOpe
               >
                 <ClipboardList className="w-4 h-4 text-emerald-400" />
                 <span>{t('drillNotes')}</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  setIsMatchdayModalOpen(true);
+                  setMobileMenuOpen(false);
+                }}
+                className="p-2 rounded-xl border border-amber-500/40 bg-amber-500/10 text-amber-300 text-xs font-bold flex items-center justify-center gap-1.5 col-span-2"
+              >
+                <FileText className="w-4 h-4 text-amber-400" />
+                <span>Lembar Matchday & Set-Piece (Cetak / PDF)</span>
               </button>
             </div>
           </div>

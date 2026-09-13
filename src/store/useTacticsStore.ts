@@ -20,12 +20,18 @@ import {
   DrillMetadata,
   PlayerActionZone,
 } from '../types/tactics';
-import { generateInitialSquad, getFormationsForPitch } from '../utils/formations';
+import { getFormationsForPitch } from '../utils/formations';
 import { calculatePitchLayout } from '../utils/pitchGeometry';
 import { calculateDefensiveWall, getDefaultBarrierDistance } from '../utils/setpieceUtils';
 import { SetpiecePreset } from '../utils/setpiecePresets';
 import { getTacticalStrategyById, createMasterTacticalSequence } from '../utils/tacticalStrategies';
 import { SupportedLanguage } from '../i18n/translations';
+import {
+  DEFAULT_DRILL_NOTES,
+  DEFAULT_HOME_TEAM,
+  DEFAULT_AWAY_TEAM,
+  createInitialKeyframe,
+} from './initialState';
 
 interface TacticsState {
   language: SupportedLanguage;
@@ -98,6 +104,8 @@ interface TacticsState {
   setIsStrategyModalOpen: (open: boolean) => void;
   isShortcutsModalOpen: boolean;
   setIsShortcutsModalOpen: (open: boolean) => void;
+  isMatchdayModalOpen: boolean;
+  setIsMatchdayModalOpen: (open: boolean) => void;
   updateFrameStrategy: (
     frameIndex: number,
     strategy: {
@@ -131,15 +139,13 @@ interface TacticsState {
 
   // Undo / Redo History
   history: {
-    players: PlayerToken[];
-    ball: BallToken;
-    drawings: DrawingElement[];
+    frames: TacticalKeyframe[];
+    activeFrameIndex: number;
     equipment: EquipmentItem[];
   }[];
   future: {
-    players: PlayerToken[];
-    ball: BallToken;
-    drawings: DrawingElement[];
+    frames: TacticalKeyframe[];
+    activeFrameIndex: number;
     equipment: EquipmentItem[];
   }[];
   canUndo: boolean;
@@ -234,57 +240,6 @@ interface TacticsState {
   substitutePlayer: (benchPlayerId: string, pitchPlayerId: string) => void;
   resetTactics: () => void;
   loadProjectData: (data: TacticsExportData) => void;
-}
-
-const DEFAULT_DRILL_NOTES: DrillMetadata = {
-  title: 'Sesi Taktik & Latihan',
-  phase: 'in-possession',
-  dimensions: '105m x 68m',
-  duration: '20 Menit',
-  playerCount: '11 vs 11',
-  objective: 'Membangun serangan dari lini belakang (Deep Build-up) & sirkulasi bola vertikal.',
-  coachingPoints: [
-    'Buka lebar posisi bek sayap dan sudut tubuh terbuka (open body shape).',
-    'Gelandang bertahan turun membentuk segitiga passing (passing triangle).',
-    'Scanning situasi dan opsi rekan sebelum menerima bola.',
-  ],
-};
-
-const DEFAULT_HOME_TEAM: TeamConfig = {
-  name: 'Home Red',
-  primaryColor: '#ef4444',
-  secondaryColor: '#ffffff',
-  textColor: '#ffffff',
-  goalkeeperColor: '#eab308',
-};
-
-const DEFAULT_AWAY_TEAM: TeamConfig = {
-  name: 'Away Blue',
-  primaryColor: '#2563eb',
-  secondaryColor: '#ffffff',
-  textColor: '#ffffff',
-  goalkeeperColor: '#10b981',
-};
-
-function createInitialKeyframe(pitchType: PitchType): TacticalKeyframe {
-  const homeSquad = generateInitialSquad('home', pitchType, undefined, 3);
-  const awaySquad = generateInitialSquad('away', pitchType, undefined, 3);
-
-  return {
-    id: `frame-${Date.now()}-1`,
-    name: 'Frame 1',
-    phase: 'attacking',
-    strategyName: 'Build-up 3-2-4-1 (Inverted Full-back)',
-    strategyInstruction: 'LB masuk ke pivot ganda samping #6, bek tengah melebar, winger membuka garis sentuh lebar!',
-    strategyPresetId: 'build-up-3241',
-    players: [...homeSquad, ...awaySquad],
-    ball: {
-      id: 'ball-1',
-      x: 50,
-      y: 50,
-    },
-    duration: 1.5,
-  };
 }
 
 export const useTacticsStore = create<TacticsState>((set, get) => {
@@ -386,6 +341,7 @@ export const useTacticsStore = create<TacticsState>((set, get) => {
     },
 
     setPitchType: (pitchType: PitchType) => {
+      get().pushHistory();
       // Pick appropriate default surface
       const surface: PitchSurface = pitchType === 'futsal' ? 'blue' : 'grass';
       const newFrame = createInitialKeyframe(pitchType);
@@ -564,6 +520,8 @@ export const useTacticsStore = create<TacticsState>((set, get) => {
     drillNotes: DEFAULT_DRILL_NOTES,
     isDrillNotesModalOpen: false,
     setIsDrillNotesModalOpen: (isDrillNotesModalOpen) => set({ isDrillNotesModalOpen }),
+    isMatchdayModalOpen: false,
+    setIsMatchdayModalOpen: (isMatchdayModalOpen) => set({ isMatchdayModalOpen }),
     setDrillNotes: (notes) => set((state) => ({ drillNotes: { ...state.drillNotes, ...notes } })),
 
     // Undo / Redo Engine
@@ -573,13 +531,11 @@ export const useTacticsStore = create<TacticsState>((set, get) => {
     canRedo: false,
     pushHistory: () => {
       const state = get();
-      const currentFrame = state.frames[state.activeFrameIndex] || state.frames[0];
-      if (!currentFrame) return;
+      if (!state.frames || state.frames.length === 0) return;
 
       const snapshot = {
-        players: JSON.parse(JSON.stringify(currentFrame.players)),
-        ball: { ...currentFrame.ball },
-        drawings: JSON.parse(JSON.stringify(currentFrame.drawings || [])),
+        frames: JSON.parse(JSON.stringify(state.frames)),
+        activeFrameIndex: state.activeFrameIndex,
         equipment: JSON.parse(JSON.stringify(state.equipment)),
       };
 
@@ -595,32 +551,24 @@ export const useTacticsStore = create<TacticsState>((set, get) => {
       const state = get();
       if (state.history.length === 0) return;
 
-      const currentFrame = state.frames[state.activeFrameIndex] || state.frames[0];
       const currentSnapshot = {
-        players: JSON.parse(JSON.stringify(currentFrame.players)),
-        ball: { ...currentFrame.ball },
-        drawings: JSON.parse(JSON.stringify(currentFrame.drawings || [])),
+        frames: JSON.parse(JSON.stringify(state.frames)),
+        activeFrameIndex: state.activeFrameIndex,
         equipment: JSON.parse(JSON.stringify(state.equipment)),
       };
 
       const newHistory = [...state.history];
       const prevSnapshot = newHistory.pop()!;
 
-      const updatedFrames = [...state.frames];
-      updatedFrames[state.activeFrameIndex] = {
-        ...currentFrame,
-        players: prevSnapshot.players,
-        ball: prevSnapshot.ball,
-        drawings: prevSnapshot.drawings,
-      };
-
       set({
-        frames: updatedFrames,
+        frames: prevSnapshot.frames,
+        activeFrameIndex: Math.min(prevSnapshot.activeFrameIndex, prevSnapshot.frames.length - 1),
         equipment: prevSnapshot.equipment,
         history: newHistory,
         future: [currentSnapshot, ...state.future],
         canUndo: newHistory.length > 0,
         canRedo: true,
+        selectedPlayerId: null,
       });
     },
 
@@ -628,32 +576,24 @@ export const useTacticsStore = create<TacticsState>((set, get) => {
       const state = get();
       if (state.future.length === 0) return;
 
-      const currentFrame = state.frames[state.activeFrameIndex] || state.frames[0];
       const currentSnapshot = {
-        players: JSON.parse(JSON.stringify(currentFrame.players)),
-        ball: { ...currentFrame.ball },
-        drawings: JSON.parse(JSON.stringify(currentFrame.drawings || [])),
+        frames: JSON.parse(JSON.stringify(state.frames)),
+        activeFrameIndex: state.activeFrameIndex,
         equipment: JSON.parse(JSON.stringify(state.equipment)),
       };
 
       const newFuture = [...state.future];
       const nextSnapshot = newFuture.shift()!;
 
-      const updatedFrames = [...state.frames];
-      updatedFrames[state.activeFrameIndex] = {
-        ...currentFrame,
-        players: nextSnapshot.players,
-        ball: nextSnapshot.ball,
-        drawings: nextSnapshot.drawings,
-      };
-
       set({
-        frames: updatedFrames,
+        frames: nextSnapshot.frames,
+        activeFrameIndex: Math.min(nextSnapshot.activeFrameIndex, nextSnapshot.frames.length - 1),
         equipment: nextSnapshot.equipment,
         history: [...state.history, currentSnapshot],
         future: newFuture,
         canUndo: true,
         canRedo: newFuture.length > 0,
+        selectedPlayerId: null,
       });
     },
 
@@ -1535,6 +1475,7 @@ export const useTacticsStore = create<TacticsState>((set, get) => {
     },
 
     addFrame: () => {
+      get().pushHistory();
       const { frames, activeFrameIndex } = get();
       const currentFrame = frames[activeFrameIndex];
       if (!currentFrame) return;
@@ -1566,6 +1507,7 @@ export const useTacticsStore = create<TacticsState>((set, get) => {
     },
 
     duplicateFrame: (index: number) => {
+      get().pushHistory();
       const { frames } = get();
       const frameToDuplicate = frames[index];
       if (!frameToDuplicate) return;
@@ -1598,6 +1540,7 @@ export const useTacticsStore = create<TacticsState>((set, get) => {
     removeFrame: (index: number) => {
       const { frames, activeFrameIndex } = get();
       if (frames.length <= 1) return;
+      get().pushHistory();
 
       const updatedFrames = frames.filter((_, idx) => idx !== index);
       const nextActive = Math.min(activeFrameIndex, updatedFrames.length - 1);
@@ -1619,6 +1562,7 @@ export const useTacticsStore = create<TacticsState>((set, get) => {
 
     loadPlayPreset: (presetFrames: TacticalKeyframe[]) => {
       if (!presetFrames || presetFrames.length === 0) return;
+      get().pushHistory();
       set({
         frames: presetFrames,
         activeFrameIndex: 0,

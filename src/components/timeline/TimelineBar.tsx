@@ -20,20 +20,42 @@ import { useTacticsStore } from '../../store/useTacticsStore';
 import { getTacticalPlayPresets } from '../../utils/tacticalPlays';
 import { Tooltip } from '../ui/Tooltip';
 import { TacticalPhase } from '../../types/tactics';
+import { computeInterpolatedFrame } from '../../utils/interpolation';
 
 const PHASES: TacticalPhase[] = ['attacking', 'trans-defend', 'defending', 'trans-attack', 'setpiece'];
 
 const PlaybackProgressBar: React.FC = React.memo(() => {
+  const frames = useTacticsStore((s) => s.frames);
   const isPlaying = useTacticsStore((s) => s.isPlaying);
   const playbackProgress = useTacticsStore((s) => s.playbackProgress);
+  const setPlaybackProgress = useTacticsStore((s) => s.setPlaybackProgress);
+  const setInterpolatedFrame = useTacticsStore((s) => s.setInterpolatedFrame);
+  const setIsPlaying = useTacticsStore((s) => s.setIsPlaying);
 
-  if (!isPlaying) return null;
+  if (frames.length <= 1) return null;
 
   return (
-    <div className="absolute top-0 left-0 right-0 h-1 bg-slate-800 overflow-hidden">
-      <div
-        className="h-full bg-emerald-500 transition-all duration-75 ease-linear shadow-sm shadow-emerald-500"
-        style={{ width: `${Math.min(100, Math.max(0, playbackProgress * 100))}%` }}
+    <div className="absolute -top-1.5 left-0 right-0 h-3 flex items-center group cursor-pointer z-30 px-0.5">
+      <input
+        type="range"
+        min="0"
+        max="1"
+        step="0.005"
+        value={playbackProgress || 0}
+        onMouseDown={() => {
+          if (isPlaying) setIsPlaying(false);
+        }}
+        onTouchStart={() => {
+          if (isPlaying) setIsPlaying(false);
+        }}
+        onChange={(e) => {
+          const val = parseFloat(e.target.value);
+          setPlaybackProgress(val);
+          const frame = computeInterpolatedFrame(frames, val);
+          if (frame) setInterpolatedFrame(frame);
+        }}
+        className="w-full h-1 bg-slate-800 rounded-none appearance-none cursor-pointer accent-emerald-500 group-hover:h-2 transition-all"
+        title="Geser scrubber timeline untuk memutar animasi secara presisi"
       />
     </div>
   );

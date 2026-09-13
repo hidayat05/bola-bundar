@@ -44,7 +44,7 @@ export function exportTacticsToJson(data: {
 }) {
   try {
     const exportData: TacticsExportData = {
-      version: '1.0.0',
+      version: '1.6.0',
       exportedAt: new Date().toISOString(),
       appName: 'Bola Bundar Tactical Board',
       ...data,
